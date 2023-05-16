@@ -44,15 +44,23 @@
 #include <llvm/Target/TargetOptions.h>
 
 #include "frontend/AST.h"
+#include "frontend/codegen.h"
 #include "frontend/parser.hpp"
 
-extern FILE *yyin;
 extern int yyparse();
 extern AST::Prog *Root;
 
 int main(int argc, char **argv) {
     std::cout << "This is compiler.cpp!" << std::endl;
-    yyin = fopen("../test/test1.c", "r");
+    if (argc > 1)
+        freopen(argv[1], "r", stdin);
+
     yyparse();
-    fclose(yyin);
+    llvm::InitializeNativeTarget();
+    llvm::InitializeNativeTargetAsmPrinter();
+    llvm::InitializeNativeTargetAsmParser();
+
+    CodeGenContext context;
+    context.GenerateCode(Root);
+    context.RunCode();
 }

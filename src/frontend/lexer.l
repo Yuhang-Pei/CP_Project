@@ -2,24 +2,19 @@
 
 #include <stdio.h>
 
-#include "parser.hpp"
 #include "AST.h"
-
-extern "C" int yywrap() { return 1; }
+#include "parser.hpp"
 
 %}
 
-%option never-interactive
-
-INTEGER [1-9][0-9]*|0
+%option noyywrap
 
 %%
 
-";"         return SEMI;
-"+"		    return ADD;
-[\n]        return RET;
-{INTEGER}   { sscanf(yytext, "%d", &(yylval.iVal)); return INTEGER; }
-[ \t]+      ;
+";"             return SEMI;
+"+"		        return ADD;
+[1-9][0-9]*|0   { sscanf(yytext, "%d", &(yylval.iVal)); return INTEGER; }
+[ \n\t]+        ;
 .
 
 %%

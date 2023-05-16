@@ -1,15 +1,15 @@
 %{
 
-#include <stdio.h>
-#include <iostream>
-#include <string>
+#include <cstdio>
+#include <cstdlib>
 
 #include "AST.h"
 
-extern FILE *yyin;
-
 extern int yylex(void);
-void yyerror(char *);
+void yyerror(const char *str) {
+    std::cout << "Error: " << str << std::endl;
+    exit(1);
+}
 
 AST::Prog *Root;
 
@@ -18,47 +18,35 @@ AST::Prog *Root;
 %union {
     int iVal;
     AST::Prog *prog;
+    AST::Node *node;
     AST::Stmt *stmt;
     AST::Stmts *stmts;
     AST::Expr *expr;
 }
 
-%token SEMI ADD RET
+%token<iVal>	INTEGER
+%token<token>	SEMI ADD
 
-%token<iVal>		INTEGER
-
-%type<prog>		Prog
-%type<stmt>		Stmt
-%type<stmts>		Stmts
-%type<expr>		Expr
-
-
-%start  Prog
+%type<prog>	Prog
+%type<stmt>	Stmt
+%type<stmts>	Stmts
+%type<expr>	Expr
 
 %left   ADD
+
+%start  Prog
 
 %%
 
 Prog: Stmts { $$ = new AST::Prog($1); Root = $$; }
 
-Stmts: Stmts Stmt { $$ = $1; $$->push_back($2); }
-       | { $$ = new AST::Stmts(); }
+Stmts: Stmts Stmt { $1->push_back($2); }
+       | Stmt { $$ = new AST::Stmts(); $$->push_back($1); }
 
-Stmt: Expr SEMI { $$ = $1; }
+Stmt: Expr SEMI { $$ = new AST::ExprStmt($1); }
 
 Expr: Expr ADD Expr { $$ = new AST::AddExpr($1, $3); }
       | INTEGER { $$ = new AST::Integer($1); }
 
 
 %%
-
-void yyerror(char *str) {
-    std::cout << "Error: " << str << std::endl;
-    exit(1);
-}
-
-//int main(int argc, char **argv) {
-//    yyin = fopen(argv[1], "r");
-//    yyparse();
-//    fclose(yyin);
-//}

@@ -5,6 +5,7 @@
 #ifndef CP_PROJECT_AST_H
 #define CP_PROJECT_AST_H
 
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -51,26 +52,25 @@
 // Uniform API for creating instructions and inserting them into a basic block
 //extern llvm::IRBuilder<> Builder;
 
+class CodeGenContext;
+
 namespace AST {
+
     class Node;
 
-    class Prog;
-
-    class Decl;
-    using Decls = std::vector<Decl *>;
-
-    class VarType;
-        class BuiltInType;
-
     class Stmt;
+
     using Stmts = std::vector<Stmt *>;
 
+    class ExprStmt;
+
     class Expr;
-    using ExprList = std::vector<Expr *>;
-        class AddExpr;
-//        class AssignExpr;
-        class Const;
-            class Int;
+
+    class Integer;
+
+    class AddExpr;
+
+    class Prog;
 
 }
 
@@ -79,106 +79,63 @@ namespace AST {
     class Node {
     public:
         Node() = default;
-        ~Node() = default;
-        virtual llvm::Value *CodeGen() = 0;
+
+        virtual ~Node() = default;
+
+        virtual llvm::Value *CodeGen(CodeGenContext *context) { return nullptr; }
     };
-
-
-    class Prog : public Node {
-    public:
-        Prog(Stmts *Stmts) : Stmts(Stmts) {}
-        ~Prog() = default;
-        llvm::Value *CodeGen() override;
-    private:
-        Stmts *Stmts;
-    };
-
 
     class Stmt : public Node {
-    public:
-        Stmt() = default;
-        ~Stmt() = default;
-        llvm::Value *CodeGen() override = 0;
     };
 
-
-    class Decl : public Stmt {
-    public:
-        Decl() = default;
-        ~Decl() = default;
-        llvm::Value *CodeGen() override = 0;
+    class Expr : public Node {
     };
 
-
-    class VarType : public Node {
+    class ExprStmt : public Stmt {
     public:
-        VarType(): LLVMType(nullptr) {}
-        ~VarType() = default;
-        virtual llvm::Type *GetLLVMType() = 0;
-        llvm::Value *CodeGen() override;
-    protected:
-        llvm::Type *LLVMType;
+        Expr *expr;
+
+        ExprStmt(Expr *expr) : expr(expr) {}
+
+        ~ExprStmt() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
     };
 
-    class BuiltInType : public VarType {
+    class Integer : public Expr {
     public:
-        enum TypeID {
-            Void, Bool, Char, Int, Float, Double
-        };
-        BuiltInType(TypeID Type) : Type(Type) {}
-        ~BuiltInType() = default;
-        llvm::Type *GetLLVMType() override;
-    private:
-        TypeID Type;
-    };
+        int intVal;
 
+        Integer(int intVal) : intVal(intVal) {}
 
-    class Expr : public Stmt {
-    public:
-        Expr() = default;
-        ~Expr() = default;
-        llvm::Value *CodeGen() override = 0;
-        virtual llvm::Value *CodeGenPtr() = 0;
+        ~Integer() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
     };
 
     class AddExpr : public Expr {
     public:
-        AddExpr(Expr *LHS, Expr *RHS) : LHS(LHS), RHS(RHS) {}
+        Expr *lhs;
+        Expr *rhs;
+
+        AddExpr(Expr *lhs, Expr *rhs) : lhs(lhs), rhs(rhs) {}
+
         ~AddExpr() = default;
-        llvm::Value *CodeGen() override;
-    private:
-        Expr *LHS, *RHS;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
     };
 
-//    class AssignExpr : public Expr {
-//    public:
-//        AssignExpr(Expr *LHS, Expr *RHS) : LHS(LHS), RHS(RHS) {}
-//        ~AssignExpr() = default;
-//        llvm::Value *CodeGen() override;
-//        llvm::Value *CodeGenPtr() override;
-//    private:
-//        Expr *LHS, *RHS;
-//    };
-
-    class Constant : public Expr {
+    class Prog : public Node {
     public:
-        explicit Constant(BuiltInType::TypeID Type) : Type(Type) {}
-        ~Constant() = default;
-        llvm::Value *CodeGen() override = 0;
-    protected:
-        BuiltInType::TypeID Type;
-    };
+        Stmts *stmts;
 
-    class Integer : public Constant {
-    public:
-        Integer(int IntVal) : Constant(BuiltInType::Int), IntVal(IntVal) {}
-        ~Integer() = default;
-        llvm::Value *CodeGen() override;
-    private:
-        int IntVal;
+        Prog(Stmts *stmts) : stmts(stmts) {}
+
+        ~Prog() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
     };
 
 }
-
 
 #endif //CP_PROJECT_AST_H
