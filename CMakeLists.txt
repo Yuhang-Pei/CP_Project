@@ -29,7 +29,9 @@ add_executable(
         src/frontend/parser.hpp
         src/frontend/parser.cpp
         src/frontend/lexer.cpp
-        src/frontend/codegen.h src/frontend/codegen.cpp)
+        src/frontend/codegen.h
+        src/frontend/io.cpp
+)
 
 # 链接 LLVM 库
 target_link_libraries(CP_Project LLVM)

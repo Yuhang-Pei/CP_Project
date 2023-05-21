@@ -47,11 +47,11 @@
 #include "frontend/codegen.h"
 #include "frontend/parser.hpp"
 
-extern int yyparse();
 extern AST::Prog *Root;
+extern int yyparse();
+extern void CreateIOFunc(CodeGenContext *context);
 
 int main(int argc, char **argv) {
-    std::cout << "This is compiler.cpp!" << std::endl;
     if (argc > 1)
         freopen(argv[1], "r", stdin);
 
@@ -60,7 +60,12 @@ int main(int argc, char **argv) {
     llvm::InitializeNativeTargetAsmPrinter();
     llvm::InitializeNativeTargetAsmParser();
 
-    CodeGenContext context;
+    CodeGenContext context(argv[1]);
+    CreateIOFunc(&context);
     context.GenerateCode(Root);
-    context.RunCode();
+    context.DumpLLVMIR("./test/llvm.ll");
+    context.GenerateObject("./test/object.o");
+    context.ExecuteCode();
+
+    return 0;
 }
