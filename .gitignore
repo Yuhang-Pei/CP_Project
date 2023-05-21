@@ -3,6 +3,7 @@
 *.o
 *.out
 
+build/
 src/frontend/parser.hpp
 src/frontend/parser.cpp
 src/frontend/lexer.cpp
