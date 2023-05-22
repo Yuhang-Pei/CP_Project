@@ -65,6 +65,9 @@ namespace AST {
         class FuncDef;
             class Param;
             using Params = std::vector<Param *>;
+        class VarDef;
+            class VarInit;
+            using VarInitList = std::vector<VarInit *>;
 
     class TypeSpecifier;
         class BuiltInType;
@@ -73,11 +76,13 @@ namespace AST {
     using Stmts = std::vector<Stmt *>;
         class Block;
         class ExprStmt;
+        class ReturnStmt;
 
     class Expr;
         class FuncCall;
             using Args = std::vector<Expr *>;
         class AddExpr;
+        class Variable;
         class Constant;
             class Integer;
 
@@ -96,7 +101,15 @@ namespace AST {
         virtual llvm::Value *CodeGen(CodeGenContext *context) { return nullptr; }
     };
 
-    class Unit : public Node {
+    class Stmt : public Node {
+    public:
+        Stmt() = default;
+
+        virtual ~Stmt() = default;
+    };
+
+    // 注意其继承了 Stmt
+    class Unit : public Stmt {
     public:
         Unit() = default;
 
@@ -119,8 +132,7 @@ namespace AST {
 
         virtual ~Param() = default;
 
-        // TODO: 暂时只实现了VOID，后续需要实现形参列表的CodeGen
-        llvm::Value *CodeGen(CodeGenContext *content) { return nullptr; }
+        llvm::Value *CodeGen(CodeGenContext *context);
     };
 
     class FuncDef : public Def {
@@ -138,6 +150,32 @@ namespace AST {
         llvm::Value *CodeGen(CodeGenContext *context);
     };
 
+    class VarDef : public Def {
+    public:
+        TypeSpecifier *typeSpecifier;   // 变量类型
+        VarInitList *varInitList;       // 变量初始化列表
+
+        VarDef(TypeSpecifier *typeSpecifier, VarInitList *varInitList) : typeSpecifier(typeSpecifier), varInitList(varInitList) {}
+
+        ~VarDef() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
+    };
+
+    class VarInit : public Node {
+    public:
+        std::string varName;    // 变量名称
+        Expr *initExpr;         // 变量初始化表达式
+
+        VarInit(std::string varName) : varName(std::move(varName)), initExpr(nullptr) {}
+
+        VarInit(std::string varName, Expr *initExpr) : varName(std::move(varName)), initExpr(initExpr) {}
+
+        ~VarInit() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
+    };
+
     class TypeSpecifier : public Node {
     public:
         llvm::Type *LLVMType;       // 类型对应的 LLVM 类型
@@ -145,6 +183,8 @@ namespace AST {
         TypeSpecifier() : LLVMType(nullptr) {}
 
         virtual llvm::Type *GetLLVMType(CodeGenContext *context) = 0;
+
+        virtual std::string GetTypeName() = 0;
     };
 
     class BuiltInType : public TypeSpecifier {
@@ -157,13 +197,8 @@ namespace AST {
         ~BuiltInType() = default;
 
         llvm::Type *GetLLVMType(CodeGenContext *context);
-    };
 
-    class Stmt : public Node {
-    public:
-        Stmt() = default;
-
-        virtual ~Stmt() = default;
+        std::string GetTypeName();
     };
 
     class Block : public Stmt {
@@ -195,6 +230,17 @@ namespace AST {
         llvm::Value *CodeGen(CodeGenContext *context);
     };
 
+    class ReturnStmt : public Stmt {
+    public:
+        Expr *returnVal;    // 返回表达式
+
+        ReturnStmt(Expr *returnVal = nullptr) : returnVal(returnVal) {}
+
+        ~ReturnStmt() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
+    };
+
     class FuncCall : public Expr {
     public:
         std::string funcName;   // 函数调用的函数名
@@ -215,6 +261,17 @@ namespace AST {
         AddExpr(Expr *lhs, Expr *rhs) : lhs(lhs), rhs(rhs) {}
 
         ~AddExpr() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
+    };
+
+    class Variable : public Expr {
+    public:
+        std::string varName;
+
+        Variable(std::string varName) : varName(std::move(varName)) {}
+
+        ~Variable() = default;
 
         llvm::Value *CodeGen(CodeGenContext *context);
     };

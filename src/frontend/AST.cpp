@@ -162,6 +162,62 @@ void CodeGenContext::PopBasicBlock() {
 
 namespace AST {
 
+    llvm::Value *Param::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating parameter " << this->paramName << "..." << std::endl;
+
+        // 获取到该形参的 LLVM 类型
+        llvm::Type *LLVMType = this->paramType->GetLLVMType(context);
+
+        // 创建 llvm::AllocaInst 指令，在函数栈中为形参分配内存空间
+        llvm::AllocaInst *alloca =
+                new llvm::AllocaInst(LLVMType, 0, this->paramName, context->GetCurrentBlock());
+        // 在变量表中插入 (paramName, allocaInst) 对
+        context->AllocateLocalVar(alloca, this->paramName);
+
+        std::cout << "Parameter " << this->paramName << " has be created" << std::endl;
+        return alloca;
+    }
+
+    llvm::Value *VarDef::CodeGen(CodeGenContext *context) {
+        llvm::Type *LLVMType = this->typeSpecifier->GetLLVMType(context);
+
+        // 处理类型未知的错误
+        if (LLVMType == nullptr)
+            throw std::logic_error("Define variables with unknown type");
+        // 处理定义 void 类型的错误
+        if (LLVMType->isVoidTy())
+            throw std::logic_error("Cannot define variables of \"void\" type");
+
+        // 逐个创建 VarInitList 中的每个变量
+        for (auto var : *this->varInitList) {
+            std::cout << "Creating variable " << var->varName << " with type " << this->typeSpecifier->GetTypeName() << std::endl;
+
+            // 创建 llvm::AllocaInst 指令，在函数栈中为变量分配内存空间
+            llvm::AllocaInst *alloca =
+                    new llvm::AllocaInst(LLVMType, 0, var->varName, context->GetCurrentBlock());
+            // 在变量表中插入 (varName, allocaInst) 对
+            context->AllocateLocalVar(alloca, var->varName);
+
+            // 处理包含初始值的情况
+            if (var->initExpr)
+                new llvm::StoreInst(
+                        var->initExpr->CodeGen(context),
+                        context->GetLocalVar(var->varName),
+                        false,
+                        context->GetCurrentBlock());
+
+            std::cout << "Variable " << var->varName << " has been created" << std::endl;
+        }
+
+        // 该函数的返回值不会使用，故返回空指针
+        return nullptr;
+    }
+
+    llvm::Value *VarInit::CodeGen(CodeGenContext *context) {
+        // 变量初始化结点不需要 CodeGen() 操作，故直接返回空指针
+        return nullptr;
+    }
+
     llvm::Type *BuiltInType::GetLLVMType(CodeGenContext *context) {
         // 如果 this->LLVMType 非空，直接将其作为返回
         if (this->LLVMType)
@@ -174,6 +230,13 @@ namespace AST {
         }
 
         return this->LLVMType;
+    }
+
+    std::string BuiltInType::GetTypeName() {
+        switch (this->type) {
+            case _VOID: return "void";
+            case _INT:  return "int";
+        }
     }
 
     llvm::Value *FuncDef::CodeGen(CodeGenContext *context) {
@@ -212,6 +275,12 @@ namespace AST {
             (*paramIter)->CodeGen(context);
             // 把每个 AST::Param 节点的形参名付给 llvm::Function 中的对应参数
             llvmParamIter->setName((*paramIter)->paramName);
+            // 创建存数指令，将该形参存到内存中
+            new llvm::StoreInst(
+                    &*llvmParamIter,
+                    context->GetLocalVar((*paramIter)->paramName),
+                    false,
+                    basicBlock);
         }
 
         // AST::Block 类型的函数体执行 CodeGen() 操作
@@ -238,12 +307,25 @@ namespace AST {
             if (stmt)
                 stmt->CodeGen(context); // 为 block 中的每个语句执行 CodeGen() 操作
         std::cout << "Block has be created" << std::endl;
+
+        // 该函数的返回值不会被使用，故返回空指针
         return nullptr;
     }
 
     llvm::Value *ExprStmt::CodeGen(CodeGenContext *context) {
         std::cout << "Creating expression statement..." << std::endl;
         return this->expr->CodeGen(context);
+    }
+
+    llvm::Value *ReturnStmt::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating return statement..." << std::endl;
+
+        // 对返回值表达式执行 CodeGen()
+        llvm::Value *retVal = this->returnVal->CodeGen(context);
+        // 将当前函数的返回值设为 llvm::Value 类型的 retVal
+        context->SetReturnValue(retVal);
+
+        return retVal;
     }
 
     llvm::Value *Integer::CodeGen(CodeGenContext *context) {
@@ -291,10 +373,28 @@ namespace AST {
         return Builder.CreateAdd(LHS, RHS);
     }
 
+    llvm::Value *Variable::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating reference to variable " << this->varName << "..." << std::endl;
+
+        // 处理变量未定义的错误
+        if (!context->IsVarInLocal(this->varName))
+            throw std::logic_error("Variable \"" + this-> varName+ "\" is not a variable");
+
+        // 创建一个取数指令
+        llvm::LoadInst *load = new llvm::LoadInst(
+                context->GetLocalVar(this->varName)->getType(),
+                context->GetLocalVar(this->varName),
+                this->varName,
+                false,
+                context->GetCurrentBlock());
+        return load;
+    }
+
     llvm::Value *Prog::CodeGen(CodeGenContext *context) {
         for (auto unit: *this->units)
             if (unit)
                 unit->CodeGen(context); // 为程序中的每个 AST::Unit 执行 CodeGen() 操作
+        // 该函数的返回值不会被使用，故返回空指针
         return nullptr;
     }
 

@@ -24,13 +24,15 @@
 
 static llvm::LLVMContext Context;
 
+using VarTable = std::map<std::string, llvm::Value *>;
+
 class CodeGenContext {
 
     class CodeGenBlock {
     public:
         llvm::BasicBlock *basicBlock;
         llvm::Value *returnValue;
-        std::map<std::string, llvm::Value *> locals;
+        VarTable localVars;
     };
 
 public:
@@ -57,6 +59,14 @@ public:
     void SetReturnValue(llvm::Value *returnValue) { this->blocks.top()->returnValue = returnValue; }
 
     void SetMainFunc(llvm::Function *mainFunc) { this->mainFunc = mainFunc; }
+
+    VarTable &GetLocalVars() { return this->blocks.top()->localVars; }
+
+    llvm::Value *GetLocalVar(const std::string &varName) { return GetLocalVars()[varName]; }
+
+    void AllocateLocalVar(llvm::AllocaInst *allocaInst, const std::string &varName) { this->blocks.top()->localVars[varName] = allocaInst; }
+
+    bool IsVarInLocal(const std::string &varName) { return !(GetLocalVars().find(varName) == GetLocalVars().end()); }
 
 private:
     std::stack<CodeGenBlock *> blocks;
