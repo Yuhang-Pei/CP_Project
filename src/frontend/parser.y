@@ -16,6 +16,7 @@ AST::Prog *Root;
 %}
 
 %union {
+    char charVal;
     int intVal;
     std::string *identifier;
 
@@ -52,13 +53,14 @@ AST::Prog *Root;
     AST::Integer *integer;
 }
 
+%token<charVal>		CHARACTER
 %token<intVal>		INTEGER
 %token<identifier>	IDENTIFIER
 %token<token>		SEMI COMMA LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE
 %token<token>		ADD
 %token<token>		EQUAL
 %token<token>		ASSIGN
-%token<token>		INT VOID
+%token<token>		VOID CHAR INT
 %token<token>		RETURN
 
 %type<prog>		Prog
@@ -87,7 +89,7 @@ AST::Prog *Root;
 %type<args>		Args
 //%type<addExpr>		AddExpr
 //%type<variable>		Variable
-//%type<constant>		Constant
+%type<constant>		Constant
 //%type<integer>		Integer
 
 %left   ADD
@@ -119,6 +121,7 @@ VarInit : IDENTIFIER ASSIGN Expr { $$ = new AST::VarInit(*$1, $3); }
 TypeSpecifier : BuiltInType { $$ = $1; }
 
 BuiltInType : VOID { $$ = new AST::BuiltInType(AST::BuiltInType::_VOID); }
+            | CHAR { $$ = new AST::BuiltInType(AST::BuiltInType::_CHAR); }
             | INT { $$ = new AST::BuiltInType(AST::BuiltInType::_INT); }
 
 Params : Params COMMA Param { $$ = $1; $$->push_back($3); }
@@ -140,7 +143,10 @@ Stmt : VarDef { $$ = $1; }
 Expr : FuncCall { $$ = $1; }
      | Expr ADD Expr { $$ = new AST::AddExpr($1, $3); }
      | IDENTIFIER { $$ = new AST::Variable(*$1); }
-     | INTEGER { $$ = new AST::Integer($1); }
+     | Constant { $$ = $1; }
+
+Constant : CHARACTER { $$ = new AST::Character($1); }
+         | INTEGER { $$ = new AST::Integer($1); }
 
 FuncCall : IDENTIFIER LPAREN Args RPAREN { $$ = new AST::FuncCall(*$1, $3); }
 

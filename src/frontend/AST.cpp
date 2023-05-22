@@ -53,6 +53,8 @@ void CodeGenContext::GenerateCode(AST::Prog *root) {
  * @param fileName 目标代码文件的名称
  */
 void CodeGenContext::GenerateObject(const std::string &fileName) const {
+    std::cout << "\033[31mGenerating object code file for the program...\033[0m" << std::endl;
+
     // TargetTriplet (目标三元组) 用来指定体系架构、操作系统和环境
     // 通过 getDefaultTargetTriple 可以获取到当前系统环境下相应的目标三元组
     auto targetTriplet = llvm::sys::getDefaultTargetTriple();
@@ -100,6 +102,8 @@ void CodeGenContext::GenerateObject(const std::string &fileName) const {
     passManager.run(*this->module);
     // 刷新输出流
     objectFile.flush();
+
+    std::cout << "\033[32mObject code file has been generated: " << fileName << "\033[0m\n" << std::endl;
 }
 
 /**
@@ -223,7 +227,8 @@ namespace AST {
 
         // 如果 this->LLVMType 为空，根据内置类型使用 IRBuilder 获取对应的 LLVM 内置类型
         switch (this->type) {
-            case _VOID: this->LLVMType = llvm::Type::getVoidTy(Context); break;
+            case _VOID: this->LLVMType = llvm::Type::getVoidTy(Context);  break;
+            case _CHAR: this->LLVMType = llvm::Type::getInt8Ty(Context);  break;
             case _INT:  this->LLVMType = llvm::Type::getInt32Ty(Context); break;
         }
 
@@ -233,6 +238,7 @@ namespace AST {
     std::string BuiltInType::GetTypeName() {
         switch (this->type) {
             case _VOID: return "void";
+            case _CHAR: return "char";
             case _INT:  return "int";
         }
     }
@@ -324,6 +330,12 @@ namespace AST {
         context->SetReturnValue(retVal);
 
         return retVal;
+    }
+
+    llvm::Value *Character::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating character \'" << this->charVal << "\'..." << std::endl;
+        // 返回 llvm::ConstantInt 类型的 8 比特整型常量，默认为无符号
+        return llvm::ConstantInt::get(llvm::Type::getInt8Ty(Context), this->charVal, false);
     }
 
     llvm::Value *Integer::CodeGen(CodeGenContext *context) {

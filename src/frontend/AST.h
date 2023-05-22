@@ -84,6 +84,7 @@ namespace AST {
         class AddExpr;
         class Variable;
         class Constant;
+            class Character;
             class Integer;
 
 }
@@ -189,8 +190,12 @@ namespace AST {
 
     class BuiltInType : public TypeSpecifier {
     public:
-        enum TypeID { _VOID, _INT };    // 可能预置类型的枚举编号
-        TypeID type;                    // 内置类型的编号
+        enum TypeID {   // 可能预置类型的枚举编号
+            _VOID,
+            _CHAR,
+            _INT
+        };
+        TypeID type;    // 内置类型的编号
 
         BuiltInType(TypeID type) : type(type) {}
 
@@ -281,6 +286,17 @@ namespace AST {
         Constant() = default;
 
         virtual ~Constant() = default;
+    };
+
+    class Character : public Constant {
+    public:
+        char charVal;   // 字符类型的字符
+
+        Character(char charVal) : charVal(charVal) {}
+
+        ~Character() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
     };
 
     class Integer : public Constant {

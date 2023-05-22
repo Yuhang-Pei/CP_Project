@@ -2,6 +2,85 @@
 
 ## Context-Free Grammar
 
+### Version 1.2
+
+```c
+int a(int arg1, int arg2) {
+    int u = 200, v = u;
+    return v + 2 + arg2;
+}
+
+int main(void) {
+    char c = 'c';
+    printInt(1 + 10 + 100);
+    printInt(a(2, 20));
+    printChar('a');
+    printChar(c);
+
+    return 0;
+}
+```
+
+```
+Prog : Units
+
+Units : Units Unit
+      | Unit
+
+Unit : Def
+
+Def : FuncDef
+    | VarDef
+
+FuncDef : TypeSpecifier IDENTIFIER LPAREN Params RPAREN Block
+
+VarDef : TypeSpecifier VarInitList SEMI
+
+VarInitList : VarInitList COMMA VarInit
+            | VarInit
+
+VarInit : IDENTIFIER ASSIGN Expr
+        | IDENTIFIER
+
+TypeSpecifier : BuiltInType
+
+BuiltInType : VOID
+            | CHAR [新增]
+            | INT
+
+Params : Params COMMA Param
+       | Param
+       | VOID
+       |
+
+Param : TypeSpecifier IDENTIFIER
+
+Block : LBRACE Stmts RBRACE
+
+Stmts : VarDef
+      | Stmts Stmt
+      | Stmt
+
+Stmt : Expr SEMI
+     | RETURN Expr SEMI
+
+Expr : FuncCall
+     | Expr ADD Expr
+     | IDENTIFIER
+     | Constant [新增]
+
+Constant : CHARACTER [新增]
+         | INTEGER [新增]
+
+FuncCall : IDENTIFIER LPAREN Args RPAREN
+
+Args : Args COMMA Expr
+     | Expr
+     | [新增]
+```
+
+
+
 ### Version 1.1
 
 ```
