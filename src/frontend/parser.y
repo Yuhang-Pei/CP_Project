@@ -50,9 +50,12 @@ AST::Prog *Root;
     AST::AddExpr *addExpr;
     AST::Variable *variable;
     AST::Constant *constant;
+    AST::Boolean *boolean;
+    AST::Character *character;
     AST::Integer *integer;
 }
 
+%token<token>		TRUE FALSE
 %token<charVal>		CHARACTER
 %token<intVal>		INTEGER
 %token<identifier>	IDENTIFIER
@@ -60,7 +63,7 @@ AST::Prog *Root;
 %token<token>		ADD
 %token<token>		EQUAL
 %token<token>		ASSIGN
-%token<token>		VOID CHAR INT
+%token<token>		VOID BOOL CHAR INT
 %token<token>		RETURN
 
 %type<prog>		Prog
@@ -87,10 +90,8 @@ AST::Prog *Root;
 %type<expr>		Expr
 %type<funcCall>		FuncCall
 %type<args>		Args
-//%type<addExpr>		AddExpr
 //%type<variable>		Variable
 %type<constant>		Constant
-//%type<integer>		Integer
 
 %left   ADD
 
@@ -121,6 +122,7 @@ VarInit : IDENTIFIER ASSIGN Expr { $$ = new AST::VarInit(*$1, $3); }
 TypeSpecifier : BuiltInType { $$ = $1; }
 
 BuiltInType : VOID { $$ = new AST::BuiltInType(AST::BuiltInType::_VOID); }
+	    | BOOL { $$ = new AST::BuiltInType(AST::BuiltInType::_BOOL); }
             | CHAR { $$ = new AST::BuiltInType(AST::BuiltInType::_CHAR); }
             | INT { $$ = new AST::BuiltInType(AST::BuiltInType::_INT); }
 
@@ -145,7 +147,9 @@ Expr : FuncCall { $$ = $1; }
      | IDENTIFIER { $$ = new AST::Variable(*$1); }
      | Constant { $$ = $1; }
 
-Constant : CHARACTER { $$ = new AST::Character($1); }
+Constant : TRUE { $$ = new AST::Boolean(true); }
+	 | FALSE { $$ = new AST::Boolean(false); }
+         | CHARACTER { $$ = new AST::Character($1); }
          | INTEGER { $$ = new AST::Integer($1); }
 
 FuncCall : IDENTIFIER LPAREN Args RPAREN { $$ = new AST::FuncCall(*$1, $3); }

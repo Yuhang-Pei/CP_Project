@@ -76,14 +76,17 @@ namespace AST {
     using Stmts = std::vector<Stmt *>;
         class Block;
         class ExprStmt;
+        class IfStmt;
         class ReturnStmt;
 
     class Expr;
         class FuncCall;
             using Args = std::vector<Expr *>;
         class AddExpr;
+        class AssignExpr;
         class Variable;
         class Constant;
+            class Boolean;
             class Character;
             class Integer;
 
@@ -168,9 +171,7 @@ namespace AST {
         std::string varName;    // 变量名称
         Expr *initExpr;         // 变量初始化表达式
 
-        VarInit(std::string varName) : varName(std::move(varName)), initExpr(nullptr) {}
-
-        VarInit(std::string varName, Expr *initExpr) : varName(std::move(varName)), initExpr(initExpr) {}
+        VarInit(std::string varName, Expr *initExpr = nullptr) : varName(std::move(varName)), initExpr(initExpr) {}
 
         ~VarInit() = default;
 
@@ -192,6 +193,7 @@ namespace AST {
     public:
         enum TypeID {   // 可能预置类型的枚举编号
             _VOID,
+            _BOOL,
             _CHAR,
             _INT
         };
@@ -235,6 +237,15 @@ namespace AST {
         llvm::Value *CodeGen(CodeGenContext *context);
     };
 
+    class IfStmt : public Stmt {
+    public:
+        Expr *condition;    // 条件
+        Stmt *thenStmt;     // 如果条件为真执行的语句
+        Stmt *elseStmt;     // 如果条件为假执行的语句
+
+
+    };
+
     class ReturnStmt : public Stmt {
     public:
         Expr *returnVal;    // 返回表达式
@@ -270,6 +281,17 @@ namespace AST {
         llvm::Value *CodeGen(CodeGenContext *context);
     };
 
+    class AssignExpr : public Expr {
+        Expr *lhs;  // 赋值符号左侧表达式
+        Expr *rhs;  // 赋值符号右侧表达式
+
+        AssignExpr(Expr *lhs, Expr *rhs) : lhs(lhs), rhs(rhs) {}
+
+        ~AssignExpr() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
+    };
+
     class Variable : public Expr {
     public:
         std::string varName;
@@ -286,6 +308,17 @@ namespace AST {
         Constant() = default;
 
         virtual ~Constant() = default;
+    };
+
+    class Boolean : public Constant {
+    public:
+        bool boolVal;   // 布尔类型值
+
+        Boolean(bool boolVal) : boolVal(boolVal) {}
+
+        ~Boolean() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
     };
 
     class Character : public Constant {

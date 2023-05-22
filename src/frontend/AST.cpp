@@ -225,9 +225,10 @@ namespace AST {
         if (this->LLVMType)
             return this->LLVMType;
 
-        // 如果 this->LLVMType 为空，根据内置类型使用 IRBuilder 获取对应的 LLVM 内置类型
+        // 如果 this->LLVMType 为空，根据内置类型获取对应的 LLVM 内置类型
         switch (this->type) {
             case _VOID: this->LLVMType = llvm::Type::getVoidTy(Context);  break;
+            case _BOOL: this->LLVMType = llvm::Type::getInt1Ty(Context);  break;
             case _CHAR: this->LLVMType = llvm::Type::getInt8Ty(Context);  break;
             case _INT:  this->LLVMType = llvm::Type::getInt32Ty(Context); break;
         }
@@ -238,6 +239,7 @@ namespace AST {
     std::string BuiltInType::GetTypeName() {
         switch (this->type) {
             case _VOID: return "void";
+            case _BOOL: return "bool";
             case _CHAR: return "char";
             case _INT:  return "int";
         }
@@ -332,9 +334,15 @@ namespace AST {
         return retVal;
     }
 
+    llvm::Value *Boolean::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating boolean " << (this->boolVal ? "true" : "false") << "..." << std::endl;
+        // 返回 llvm::ConstantInt 类型的 1 比特整型常量（即布尔类型），默认为无符号
+        return llvm::ConstantInt::get(llvm::Type::getInt1Ty(Context), this->boolVal, false);
+    }
+
     llvm::Value *Character::CodeGen(CodeGenContext *context) {
         std::cout << "Creating character \'" << this->charVal << "\'..." << std::endl;
-        // 返回 llvm::ConstantInt 类型的 8 比特整型常量，默认为无符号
+        // 返回 llvm::ConstantInt 类型的 8 比特整型常量（即字符类型），默认为无符号
         return llvm::ConstantInt::get(llvm::Type::getInt8Ty(Context), this->charVal, false);
     }
 
@@ -351,10 +359,8 @@ namespace AST {
         llvm::Function *func = context->module->getFunction(this->funcName);
 
         // 如果调用的函数没有被定义，则报错
-        if (func == nullptr) {
-            std::cerr << this->funcName << " is not a function" << std::endl;
-            return nullptr;
-        }
+        if (func == nullptr)
+            throw std::logic_error(this->funcName + " is not a function");
 
         // 定义 llvm::Value 类型的函数调用实参列表
         std::vector<llvm::Value *> argList;
@@ -379,8 +385,15 @@ namespace AST {
 
         std::cout << "Add expression has been created" << std::endl;
 
-        // 使用 IRBuilder 返回类型为 llvm::Value 的加法表达式
+        // 创建加法表达式指令
         return llvm::BinaryOperator::CreateAdd(LHS, RHS, "", context->GetCurrentBlock());
+    }
+
+    llvm::Value *AssignExpr::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating assign expression..." << std::endl;
+
+        ///TODO: 错误处理
+
     }
 
     llvm::Value *Variable::CodeGen(CodeGenContext *context) {

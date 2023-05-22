@@ -42,8 +42,11 @@ char Escape(char c) {
 "="                     { return ASSIGN; }
 "return"                { return RETURN; }
 "void"                  { return VOID; }
+"bool"                  { return BOOL; }
 "char"                  { return CHAR; }
 "int"                   { return INT; }
+"true"                  { return TRUE; }
+"false"                 { return FALSE; }
 [a-zA-Z_][a-zA-Z0-9_]*  { yylval.identifier = new std::string(yytext, yyleng); return IDENTIFIER; }
 [1-9][0-9]*|0           { sscanf(yytext, "%d", &(yylval.intVal)); return INTEGER; }
 [ \n\t]+                ;

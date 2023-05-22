@@ -55,7 +55,10 @@ int main(int argc, char **argv) {
     if (argc > 1)
         freopen(argv[1], "r", stdin);
 
+    std::cout << "\033[31mParsing code...\033[0m" << std::endl;
     yyparse();
+    std::cout << "\033[32mParsing finishes\033[0m\n" << std::endl;
+
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
     llvm::InitializeNativeTargetAsmParser();

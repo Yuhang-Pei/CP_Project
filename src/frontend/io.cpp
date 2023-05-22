@@ -29,6 +29,56 @@ llvm::Function *CreatePrintfFunc(CodeGenContext *context) {
 }
 
 /**
+ * @brief 创建一个打印 bool 类型的函数
+ * @param context 上下文
+ * @param printfFunc 可调用的 printf 函数
+ */
+void CreatePrintBoolFunc(CodeGenContext *context, llvm::Function *printfFunc) {
+    // printBool() 的形参列表为一个整型变量
+    std::vector<llvm::Type *> printBoolArgTypes;
+    printBoolArgTypes.push_back(llvm::Type::getInt1Ty(Context));
+
+    // 创建 printBool() 的函数类型，返回类型为 void
+    llvm::FunctionType *printBoolFuncType =
+            llvm::FunctionType::get(llvm::Type::getVoidTy(Context), printBoolArgTypes, false);
+
+    // 创建 printBool() 函数
+    llvm::Function *printBoolFunc =
+            llvm::Function::Create(printBoolFuncType, llvm::Function::ExternalLinkage, llvm::Twine("printBool"), context->module);
+
+    // 为 printBool() 创建基本块
+    llvm::BasicBlock *basicBlock = llvm::BasicBlock::Create(Context, "printBool_entry", printBoolFunc, 0);
+    // 基本块入栈
+    context->PushBasicBlock(basicBlock);
+
+    // 创建 printf() 的输出格式参数
+    const std::string printBoolFormat = "%d\n";
+    llvm::Constant *printBoolFormatStr = llvm::ConstantDataArray::getString(Context, printBoolFormat);
+    // 获取输出格式参数的 LLVM 类型
+    llvm::ArrayType *printBoolFormatType =
+            llvm::ArrayType::get(llvm::IntegerType::get(Context, 8), printBoolFormat.length() + 1);
+    // 创建一个全局变量，存储输出格式参数
+    llvm::GlobalVariable *printBoolFormatVar =
+            new llvm::GlobalVariable(*context->module, printBoolFormatType, true, llvm::GlobalValue::PrivateLinkage, printBoolFormatStr, ".printBoolFormatStr");
+
+    // 获取 printBool() 函数的整型参数，作为 printf() 的参数，并命名为 "boolToPrint"
+    llvm::Value *boolToPrint = printBoolFunc->arg_begin();
+    boolToPrint->setName("boolToPrint");
+
+    // 创建 printf() 函数的实参列表
+    std::vector<llvm::Value *> printfArgs({ printBoolFormatVar, boolToPrint });
+
+    // 发起对 printf() 的调用，以 printfArgs 作为实参列表
+    llvm::CallInst::Create(printfFunc, llvm::ArrayRef(printfArgs), "", basicBlock);
+
+    // 创建返回指令，从 printBool() 返回
+    llvm::ReturnInst::Create(Context, basicBlock);
+
+    // 基本块出栈
+    context->PopBasicBlock();
+}
+
+/**
  * @brief 创建一个打印 char 类型的函数
  * @param context 上下文
  * @param printfFunc 可调用的 printf 函数
@@ -135,6 +185,7 @@ void CreatePrintIntFunc(CodeGenContext *context, llvm::Function *printfFunc) {
 void CreateIOFunc(CodeGenContext *context) {
     llvm::Function *printfFunc = CreatePrintfFunc(context);
 
+    CreatePrintBoolFunc(context, printfFunc);
     CreatePrintCharFunc(context, printfFunc);
     CreatePrintIntFunc(context, printfFunc);
 }
