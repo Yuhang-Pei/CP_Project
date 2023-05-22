@@ -8,8 +8,6 @@
 #include "codegen.h"
 #include "parser.hpp"
 
-static llvm::IRBuilder<> Builder(Context);
-
 
 /**
  * @brief 对以 root 为根节点的抽象语法树，遍历每个节点，生成代码
@@ -225,8 +223,8 @@ namespace AST {
 
         // 如果 this->LLVMType 为空，根据内置类型使用 IRBuilder 获取对应的 LLVM 内置类型
         switch (this->type) {
-            case _VOID: this->LLVMType = Builder.getVoidTy(); break;
-            case _INT:  this->LLVMType = Builder.getInt32Ty(); break;
+            case _VOID: this->LLVMType = llvm::Type::getVoidTy(Context); break;
+            case _INT:  this->LLVMType = llvm::Type::getInt32Ty(Context); break;
         }
 
         return this->LLVMType;
@@ -370,7 +368,7 @@ namespace AST {
         std::cout << "Add expression has been created" << std::endl;
 
         // 使用 IRBuilder 返回类型为 llvm::Value 的加法表达式
-        return Builder.CreateAdd(LHS, RHS);
+        return llvm::BinaryOperator::CreateAdd(LHS, RHS, "", context->GetCurrentBlock());
     }
 
     llvm::Value *Variable::CodeGen(CodeGenContext *context) {

@@ -1,6 +1,6 @@
 int a(int arg1, int arg2) {
-    int u = 200, v = u + 1;
-    return 200;
+    int u = 200, v = u;
+    return v + 2 + arg2;
 }
 
 int main(void) {
