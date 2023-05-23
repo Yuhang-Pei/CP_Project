@@ -504,6 +504,21 @@ namespace AST {
         return Builder.CreateAdd(LHS, RHS);
     }
 
+    llvm::Value *MulExpr::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating mul expression..." << std::endl;
+
+        // 对左表达式执行 CodeGen() 操作
+        llvm::Value *LHS = this->lhs->CodeGen(context);
+        // 对右表达式执行 CodeGen() 操作
+        llvm::Value *RHS = this->rhs->CodeGen(context);
+
+        std::cout << "Mul expression has been created" << std::endl;
+
+        // 创建加法表达式指令
+        // TODO: 只实现了整型的加法
+        return Builder.CreateMul(LHS, RHS);
+    }
+
     llvm::Value *EqExpr::CodeGen(CodeGenContext *context) {
         std::cout << "Creating logical equality expression..." << std::endl;
 

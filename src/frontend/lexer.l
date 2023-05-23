@@ -48,6 +48,7 @@ void GetString() {
 "}"                     { return RBRACE; }
 "=="                    { return EQUAL; }
 "+"		                { return ADD; }
+"*"		                { return MUL; }
 "="                     { return ASSIGN; }
 "if"                    { return IF; }
 "else"                  { return ELSE; }
