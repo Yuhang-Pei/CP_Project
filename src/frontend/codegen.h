@@ -24,6 +24,8 @@
 
 static llvm::LLVMContext Context;
 
+static llvm::IRBuilder<> Builder(Context);
+
 using VarTable = std::map<std::string, llvm::Value *>;
 
 class CodeGenContext {
@@ -33,6 +35,8 @@ class CodeGenContext {
         llvm::BasicBlock *basicBlock;
         llvm::Value *returnValue;
         VarTable localVars;
+
+        CodeGenBlock(llvm::BasicBlock *basicBlock) : basicBlock(basicBlock), returnValue(nullptr) {}
     };
 
 public:
@@ -48,29 +52,54 @@ public:
 
     void DumpLLVMIR(const std::string &fileName) const;
 
+    /* 基本块操作 */
+
     void PushBasicBlock(llvm::BasicBlock *basicBlock);
 
     void PopBasicBlock();
 
-    llvm::BasicBlock *GetCurrentBlock() { return this->blocks.top()->basicBlock; }
+    llvm::BasicBlock *GetCurrentBlock() const { return this->blocks.top()->basicBlock; }
 
-    llvm::Value *GetReturnValue() { return this->blocks.top()->returnValue; }
+//    llvm::Type *GetCurrentReturnType() const { return this->blocks.top()->returnValue->getType(); }
 
-    void SetReturnValue(llvm::Value *returnValue) { this->blocks.top()->returnValue = returnValue; }
+    void SetCurrentReturnValue(llvm::Value *returnValue) { this->blocks.top()->returnValue = returnValue; }
 
-    void SetMainFunc(llvm::Function *mainFunc) { this->mainFunc = mainFunc; }
+    llvm::Value *GetCurrentReturnValue() const { return this->blocks.top()->returnValue; }
+
+    /* 变量表操作 */
 
     VarTable &GetLocalVars() { return this->blocks.top()->localVars; }
 
     llvm::Value *GetLocalVar(const std::string &varName) { return GetLocalVars()[varName]; }
 
-    void AllocateLocalVar(llvm::AllocaInst *allocaInst, const std::string &varName) { this->blocks.top()->localVars[varName] = allocaInst; }
+    bool AddLocalVar(llvm::Value *var, const std::string &varName);
 
     bool IsVarInLocal(const std::string &varName) { return !(GetLocalVars().find(varName) == GetLocalVars().end()); }
+
+    /* 函数操作 */
+
+    void SetMainFunc(llvm::Function *mainFunc) { this->mainFunc = mainFunc; }
+
+    bool IsFuncExist(const std::string &funcName) { return !(this->module->getFunction(funcName)); }
+
+    /* 当前函数 */
+
+    void EnterFunc(llvm::Function *func) { this->currentFunc = func; }
+
+    void LeaveFunc() { this->currentFunc = nullptr; }
+
+    llvm::Function *GetCurrentFunc() const { return this->currentFunc; }
+
+    std::string GetCurrentFuncName() const { return this->currentFunc->getName().str(); }
+
+    llvm::BasicBlock *GetCurrentFuncEntryBlock() const { return &this->currentFunc->getEntryBlock(); }
+
+    llvm::Type *GetCurrentReturnType() const { return this->currentFunc->getReturnType(); }
 
 private:
     std::stack<CodeGenBlock *> blocks;
     llvm::Function *mainFunc;
+    llvm::Function *currentFunc = nullptr;
 };
 
 #endif //CP_PROJECT_CODEGEN_H

@@ -31,6 +31,7 @@ AST::Prog *Root;
     AST::FuncDef *funcDef;
     AST::Param *param;
     AST::Params *params;
+    AST::FuncBody *funcBody;
     AST::VarDef *varDef;
     AST::VarInit *varInit;
     AST::VarInitList *varInitList;
@@ -75,6 +76,7 @@ AST::Prog *Root;
 %type<funcDef>		FuncDef
 %type<param>		Param
 %type<params>		Params
+%type<funcBody>		FuncBody
 %type<varDef>		VarDef
 %type<varInit>		VarInit
 %type<varInitList>	VarInitList
@@ -86,6 +88,7 @@ AST::Prog *Root;
 %type<stmts>		Stmts
 %type<block>		Block
 //%type<exprStmt>		ExprStmt
+%type<returnStmt>	ReturnStmt
 
 %type<expr>		Expr
 %type<funcCall>		FuncCall
@@ -109,7 +112,9 @@ Unit : Def { $$ = $1; }
 Def : FuncDef { $$ = $1; }
     | VarDef { $$ = $1; }
 
-FuncDef : TypeSpecifier IDENTIFIER LPAREN Params RPAREN Block { $$ = new AST::FuncDef($1, *$2, $4, $6); }
+FuncDef : TypeSpecifier IDENTIFIER LPAREN Params RPAREN FuncBody { $$ = new AST::FuncDef($1, *$2, $4, $6); }
+
+FuncBody : LBRACE Stmts RBRACE { $$ = new AST::FuncBody($2); }
 
 VarDef : TypeSpecifier VarInitList SEMI { $$ = new AST::VarDef($1, $2); }
 
@@ -139,8 +144,12 @@ Stmts : Stmts Stmt { $$ = $1; $$->push_back($2); }
       | Stmt { $$ = new AST::Stmts(); $$->push_back($1); }
 
 Stmt : VarDef { $$ = $1; }
+     | Block { $$ = $1; }
      | Expr SEMI { $$ = new AST::ExprStmt($1); }
-     | RETURN Expr SEMI { $$ = new AST::ReturnStmt($2); }
+     | ReturnStmt { $$ = $1; }
+
+ReturnStmt : RETURN Expr SEMI { $$ = new AST::ReturnStmt($2); }
+           | RETURN SEMI { $$ = new AST::ReturnStmt(); }
 
 Expr : FuncCall { $$ = $1; }
      | Expr ADD Expr { $$ = new AST::AddExpr($1, $3); }

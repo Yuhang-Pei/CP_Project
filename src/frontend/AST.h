@@ -11,6 +11,7 @@
 #include <vector>
 
 #include <llvm/IR/Value.h>
+#include <llvm/IR/Type.h>
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Function.h>
@@ -65,6 +66,7 @@ namespace AST {
         class FuncDef;
             class Param;
             using Params = std::vector<Param *>;
+            class FuncBody;
         class VarDef;
             class VarInit;
             using VarInitList = std::vector<VarInit *>;
@@ -216,7 +218,16 @@ namespace AST {
 
         ~Block() = default;
 
-        llvm::Value *CodeGen(CodeGenContext *context);
+        virtual llvm::Value *CodeGen(CodeGenContext *context);
+    };
+
+    class FuncBody : public Block {
+    public:
+        FuncBody(Stmts *stmts) : Block(stmts) {}
+
+        ~FuncBody() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context) override;
     };
 
     class Expr : public Node {
