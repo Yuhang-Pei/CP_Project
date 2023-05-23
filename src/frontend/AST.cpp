@@ -7,6 +7,8 @@
 #include "AST.h"
 #include "codegen.h"
 #include "parser.hpp"
+#include "type.hpp"
+
 
 /**
  * @brief 对以 root 为根节点的抽象语法树，遍历每个节点，生成代码
@@ -362,6 +364,56 @@ namespace AST {
         return this->expr->CodeGen(context);
     }
 
+    llvm::Value *IfStmt::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating if statement..." << std::endl;
+
+        // 获取条件表达式的结果
+        // 并将条件表达式转换为 1 比特整型（布尔类型）
+        llvm::Value *ifCondition = CastToBool(this->condition->CodeGen(context));
+
+        // 获取当前函数
+        llvm::Function *currentFunc = context->GetCurrentFunc();
+
+        // 构造 then 基本块
+        llvm::BasicBlock *thenBB = llvm::BasicBlock::Create(Context, "then");
+        // 构造 else 基本块
+        llvm::BasicBlock *elseBB = llvm::BasicBlock::Create(Context, "else");
+        // 构造 merge 基本块，用于条件语句之后的程序流的汇聚
+        llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(Context, "merge");
+
+        // 构造分支指令，条件为 true 时进入 thenBasicBlock，条件为 false 时进入 elseBasicBlock
+        Builder.CreateCondBr(ifCondition, thenBB, elseBB);
+
+        // 在 then 基本块中添加指令
+        currentFunc->insert(currentFunc->end(), thenBB);    // 在函数的基本块列表的末尾添加 thenBB
+        Builder.SetInsertPoint(thenBB); // 将插入指令的位置设为 thenBB
+        if (this->thenStmt) {
+            context->PushBasicBlock(thenBB);
+            this->thenStmt->CodeGen(context);
+            context->PopBasicBlock();
+        }
+        Builder.CreateBr(mergeBB);
+
+        // 在 else 基本块中添加指令
+        currentFunc->insert(currentFunc->end(), elseBB);    // 在函数的基本块列表的末尾添加 elseBB
+        Builder.SetInsertPoint(elseBB); // 将插入指令的位置设为 elseBB
+        if (this->elseStmt) {
+            context->PushBasicBlock(elseBB);
+            this->elseStmt->CodeGen(context);
+            context->PopBasicBlock();
+        }
+        Builder.CreateBr(mergeBB);
+
+        // 在 merge 基本块中添加指令
+        currentFunc->insert(currentFunc->end(), mergeBB);   // 在函数的基本块列表的末尾添加 mergeBB
+        Builder.SetInsertPoint(mergeBB);    // 将插入指令的位置设为 mergeBB
+
+        std::cout << "If statement has been created" << std::endl;
+
+        // 该函数的返回值不会使用，故返回空指针
+        return nullptr;
+    }
+
     llvm::Value *ReturnStmt::CodeGen(CodeGenContext *context) {
         llvm::Function *func = context->GetCurrentFunc();   // 获取当前函数
         // 如果当前函数为 nullptr，即 return 被用在全局，则应抛出错误
@@ -441,7 +493,23 @@ namespace AST {
         std::cout << "Add expression has been created" << std::endl;
 
         // 创建加法表达式指令
+        // TODO: 只实现了整型的加法
         return Builder.CreateAdd(LHS, RHS);
+    }
+
+    llvm::Value *EqExpr::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating logical equality expression..." << std::endl;
+
+        // 对左表达式执行 CodeGen() 操作
+        llvm::Value *LHS = this->lhs->CodeGen(context);
+        // 对右表达式执行 CodeGen() 操作
+        llvm::Value *RHS = this->rhs->CodeGen(context);
+
+        std::cout << "Logical equality expression has been created" << std::endl;
+
+        // 创建逻辑等于表达式指令
+        // TODO: 只实现了整型的逻辑等于
+        return Builder.CreateICmpEQ(LHS, RHS);
     }
 
     llvm::Value *AssignExpr::CodeGen(CodeGenContext *context) {

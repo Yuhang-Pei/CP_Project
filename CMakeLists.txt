@@ -31,6 +31,7 @@ add_executable(
         src/frontend/lexer.cpp
         src/frontend/codegen.h
         src/frontend/io.cpp
+        src/frontend/type.hpp
 )
 
 # 链接 LLVM 库

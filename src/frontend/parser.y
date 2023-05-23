@@ -43,12 +43,14 @@ AST::Prog *Root;
     AST::Stmts *stmts;
     AST::Block *block;
     AST::ExprStmt *exprStmt;
+    AST::IfStmt *ifStmt;
     AST::ReturnStmt *returnStmt;
 
     AST::Expr *expr;
     AST::FuncCall *funcCall;
     AST::Args *args;
     AST::AddExpr *addExpr;
+    AST::EqExpr *eqExpr;
     AST::Variable *variable;
     AST::Constant *constant;
     AST::Boolean *boolean;
@@ -65,7 +67,7 @@ AST::Prog *Root;
 %token<token>		EQUAL
 %token<token>		ASSIGN
 %token<token>		VOID BOOL CHAR INT
-%token<token>		RETURN
+%token<token>		IF ELSE RETURN
 
 %type<prog>		Prog
 
@@ -87,7 +89,7 @@ AST::Prog *Root;
 %type<stmt>		Stmt
 %type<stmts>		Stmts
 %type<block>		Block
-//%type<exprStmt>		ExprStmt
+%type<ifStmt>		IfStmt
 %type<returnStmt>	ReturnStmt
 
 %type<expr>		Expr
@@ -146,13 +148,18 @@ Stmts : Stmts Stmt { $$ = $1; $$->push_back($2); }
 Stmt : VarDef { $$ = $1; }
      | Block { $$ = $1; }
      | Expr SEMI { $$ = new AST::ExprStmt($1); }
+     | IfStmt { $$ = $1; }
      | ReturnStmt { $$ = $1; }
+
+IfStmt : IF LPAREN Expr RPAREN Stmt ELSE Stmt { $$ = new AST::IfStmt($3, $5, $7); }
+       | IF LPAREN Expr RPAREN Stmt { $$ = new AST::IfStmt($3, $5); }
 
 ReturnStmt : RETURN Expr SEMI { $$ = new AST::ReturnStmt($2); }
            | RETURN SEMI { $$ = new AST::ReturnStmt(); }
 
 Expr : FuncCall { $$ = $1; }
      | Expr ADD Expr { $$ = new AST::AddExpr($1, $3); }
+     | Expr EQUAL Expr { $$ = new AST::EqExpr($1, $3); }
      | IDENTIFIER { $$ = new AST::Variable(*$1); }
      | Constant { $$ = $1; }
 

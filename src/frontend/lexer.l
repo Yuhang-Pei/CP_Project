@@ -40,6 +40,8 @@ char Escape(char c) {
 "=="                    { return EQUAL; }
 "+"		                { return ADD; }
 "="                     { return ASSIGN; }
+"if"                    { return IF; }
+"else"                  { return ELSE; }
 "return"                { return RETURN; }
 "void"                  { return VOID; }
 "bool"                  { return BOOL; }

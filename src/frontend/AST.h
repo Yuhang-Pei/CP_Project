@@ -85,13 +85,14 @@ namespace AST {
         class FuncCall;
             using Args = std::vector<Expr *>;
         class AddExpr;
+        class EqExpr;
+        class NEExpr;
         class AssignExpr;
         class Variable;
         class Constant;
             class Boolean;
             class Character;
             class Integer;
-
 }
 
 /* AST 节点的类定义 */
@@ -250,11 +251,15 @@ namespace AST {
 
     class IfStmt : public Stmt {
     public:
-        Expr *condition;    // 条件
+        Expr *condition;    // 条件表达式
         Stmt *thenStmt;     // 如果条件为真执行的语句
         Stmt *elseStmt;     // 如果条件为假执行的语句
 
+        IfStmt(Expr *condition, Stmt *thenStmt, Stmt *elseStmt = nullptr) : condition(condition), thenStmt(thenStmt), elseStmt(elseStmt) {}
 
+        ~IfStmt() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
     };
 
     class ReturnStmt : public Stmt {
@@ -288,6 +293,18 @@ namespace AST {
         AddExpr(Expr *lhs, Expr *rhs) : lhs(lhs), rhs(rhs) {}
 
         ~AddExpr() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
+    };
+
+    class EqExpr : public Expr {
+    public:
+        Expr *lhs;
+        Expr *rhs;
+
+        EqExpr(Expr *lhs, Expr *rhs) : lhs(lhs), rhs(rhs) {}
+
+        ~EqExpr() = default;
 
         llvm::Value *CodeGen(CodeGenContext *context);
     };
