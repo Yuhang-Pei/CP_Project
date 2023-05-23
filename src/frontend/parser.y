@@ -51,6 +51,7 @@ AST::Prog *Root;
     AST::FuncCall *funcCall;
     AST::Args *args;
     AST::AddExpr *addExpr;
+    AST::MulExpr *mulExpr;
     AST::EqExpr *eqExpr;
     AST::Variable *variable;
     AST::Constant *constant;
@@ -101,6 +102,7 @@ AST::Prog *Root;
 %type<constant>		Constant
 
 %left   ADD
+%left   MUL
 
 %start  Prog
 
@@ -161,6 +163,7 @@ ReturnStmt : RETURN Expr SEMI { $$ = new AST::ReturnStmt($2); }
 
 Expr : FuncCall { $$ = $1; }
      | Expr ADD Expr { $$ = new AST::AddExpr($1, $3); }
+     | Expr MUL Expr { $$ = new AST::MulExpr($1, $3); }
      | Expr EQUAL Expr { $$ = new AST::EqExpr($1, $3); }
      | IDENTIFIER { $$ = new AST::Variable(*$1); }
      | Constant { $$ = $1; }
