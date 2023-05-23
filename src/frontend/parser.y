@@ -18,6 +18,7 @@ AST::Prog *Root;
 %union {
     char charVal;
     int intVal;
+    std::string *strVal;
     std::string *identifier;
 
     AST::Node *node;
@@ -61,6 +62,7 @@ AST::Prog *Root;
 %token<token>		TRUE FALSE
 %token<charVal>		CHARACTER
 %token<intVal>		INTEGER
+%token<strVal>		STRING
 %token<identifier>	IDENTIFIER
 %token<token>		SEMI COMMA LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE
 %token<token>		ADD
@@ -167,6 +169,7 @@ Constant : TRUE { $$ = new AST::Boolean(true); }
 	 | FALSE { $$ = new AST::Boolean(false); }
          | CHARACTER { $$ = new AST::Character($1); }
          | INTEGER { $$ = new AST::Integer($1); }
+         | STRING { $$ = new AST::ConstString(*$1); }
 
 FuncCall : IDENTIFIER LPAREN Args RPAREN { $$ = new AST::FuncCall(*$1, $3); }
 
