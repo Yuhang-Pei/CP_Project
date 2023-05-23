@@ -489,34 +489,46 @@ namespace AST {
         return call;
     }
 
+    llvm::Value *FuncCall::CodeGenPtr(CodeGenContext *context) {
+        throw std::logic_error("Function call cannot be used as left-value");
+    }
+
     llvm::Value *AddExpr::CodeGen(CodeGenContext *context) {
-        std::cout << "Creating add expression..." << std::endl;
+        std::cout << "Creating addition expression..." << std::endl;
 
         // 对左表达式执行 CodeGen() 操作
         llvm::Value *LHS = this->lhs->CodeGen(context);
         // 对右表达式执行 CodeGen() 操作
         llvm::Value *RHS = this->rhs->CodeGen(context);
 
-        std::cout << "Add expression has been created" << std::endl;
+        std::cout << "Addition expression has been created" << std::endl;
 
         // 创建加法表达式指令
         // TODO: 只实现了整型的加法
         return Builder.CreateAdd(LHS, RHS);
     }
 
+    llvm::Value *AddExpr::CodeGenPtr(CodeGenContext *context) {
+        throw std::logic_error("Addition expression cannot be used as left-value");
+    }
+
     llvm::Value *MulExpr::CodeGen(CodeGenContext *context) {
-        std::cout << "Creating mul expression..." << std::endl;
+        std::cout << "Creating multiplication expression..." << std::endl;
 
         // 对左表达式执行 CodeGen() 操作
         llvm::Value *LHS = this->lhs->CodeGen(context);
         // 对右表达式执行 CodeGen() 操作
         llvm::Value *RHS = this->rhs->CodeGen(context);
 
-        std::cout << "Mul expression has been created" << std::endl;
+        std::cout << "Multiplication expression has been created" << std::endl;
 
         // 创建加法表达式指令
         // TODO: 只实现了整型的加法
         return Builder.CreateMul(LHS, RHS);
+    }
+
+    llvm::Value *MulExpr::CodeGenPtr(CodeGenContext *context) {
+        throw std::logic_error("Multiplication expression cannot be used as left-value");
     }
 
     llvm::Value *EqExpr::CodeGen(CodeGenContext *context) {
@@ -534,11 +546,28 @@ namespace AST {
         return Builder.CreateICmpEQ(LHS, RHS);
     }
 
-    llvm::Value *AssignExpr::CodeGen(CodeGenContext *context) {
-        std::cout << "Creating assign expression..." << std::endl;
+    llvm::Value *EqExpr::CodeGenPtr(CodeGenContext *context) {
+        throw std::logic_error("Logical equality expression cannot be used as left-value");
+    }
 
-        /// TODO: Assign 错误处理
-        /// TODO: Assign 实现
+    llvm::Value *AssignExpr::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating assignment expression..." << std::endl;
+
+        // 对左表达式获取指针
+        llvm::Value *ptrLHS = this->lhs->CodeGenPtr(context);
+        // 对右表达式执行 CodeGen() 操作
+        llvm::Value *RHS = this->rhs->CodeGen(context);
+
+        // TODO: 缺少赋值时的类型转换
+        // 创建 Store 指令，把右表达式的值存入左表达式对应的地址
+        Builder.CreateStore(RHS, ptrLHS);
+        // 创建 Load 指令，以左表达式的值作为返回值
+        llvm::Type *LHSType = GetPtrElementType(ptrLHS);
+        return Builder.CreateLoad(LHSType, ptrLHS);
+    }
+
+    llvm::Value *AssignExpr::CodeGenPtr(CodeGenContext *context) {
+        throw std::logic_error("Assignment expression cannot be used as left-value");
     }
 
     llvm::Value *Variable::CodeGen(CodeGenContext *context) {
@@ -549,9 +578,23 @@ namespace AST {
             throw std::logic_error("Variable \"" + this-> varName+ "\" is not a variable");
 
         // 创建一个取数指令
-        llvm::Value *var = context->GetLocalVar(this->varName);
-        llvm::Type *varType = static_cast<llvm::AllocaInst *>(var)->getAllocatedType();
-        return Builder.CreateLoad(varType, var, this->varName);
+        llvm::Value *varPtr = context->GetLocalVar(this->varName);
+        llvm::Type *varType = GetPtrElementType(varPtr);
+        return Builder.CreateLoad(varType, varPtr, this->varName);
+    }
+
+    llvm::Value *Variable::CodeGenPtr(CodeGenContext *context) {
+        std::cout << "Creating reference to variable " << this->varName << "..." << std::endl;
+
+        // 处理变量未定义的错误
+        if (!context->IsVarInLocal(this->varName))
+            throw std::logic_error("Variable \"" + this-> varName+ "\" is not a variable");
+
+        return context->GetLocalVar(this->varName);
+    }
+
+    llvm::Value *Constant::CodeGenPtr(CodeGenContext *context) {
+        throw std::logic_error("Constant expression cannot be used as left-value");
     }
 
     llvm::Value *Prog::CodeGen(CodeGenContext *context) {

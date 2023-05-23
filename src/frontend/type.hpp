@@ -18,4 +18,11 @@ llvm::Value *CastToBool(llvm::Value *val) {
     throw std::logic_error("Cannot cast to bool");
 }
 
+llvm::Type *GetPtrElementType(llvm::Value *ptr) {
+    if (!ptr->getType()->isPointerTy())
+        throw std::logic_error("Should pass a pointer to get the element type");
+
+    return static_cast<llvm::AllocaInst *>(ptr)->getAllocatedType();
+}
+
 #endif //CP_PROJECT_TYPE_HPP

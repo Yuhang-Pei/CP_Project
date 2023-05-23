@@ -107,7 +107,7 @@ namespace AST {
 
         virtual ~Node() = default;
 
-        virtual llvm::Value *CodeGen(CodeGenContext *context) { return nullptr; }
+        virtual llvm::Value *CodeGen(CodeGenContext *context) = 0;
     };
 
     class Stmt : public Node {
@@ -211,6 +211,8 @@ namespace AST {
         llvm::Type *GetLLVMType(CodeGenContext *context);
 
         std::string GetTypeName();
+
+        llvm::Value *CodeGen(CodeGenContext *context) { return nullptr; }
     };
 
     class Block : public Stmt {
@@ -238,6 +240,11 @@ namespace AST {
         Expr() = default;
 
         virtual ~Expr() = default;
+
+        virtual llvm::Value *CodeGen(CodeGenContext *context) = 0;
+
+        // 获取表达式的指针，即左值
+        virtual llvm::Value* CodeGenPtr(CodeGenContext *context) = 0;
     };
 
     class ExprStmt : public Stmt {
@@ -285,6 +292,8 @@ namespace AST {
         ~FuncCall() = default;
 
         llvm::Value *CodeGen(CodeGenContext *context);
+
+        llvm::Value *CodeGenPtr(CodeGenContext *context);
     };
 
     class AddExpr : public Expr {
@@ -297,6 +306,8 @@ namespace AST {
         ~AddExpr() = default;
 
         llvm::Value *CodeGen(CodeGenContext *context);
+
+        llvm::Value *CodeGenPtr(CodeGenContext *context);
     };
 
     class MulExpr : public Expr {
@@ -309,6 +320,8 @@ namespace AST {
         ~MulExpr() = default;
 
         llvm::Value *CodeGen(CodeGenContext *context);
+
+        llvm::Value *CodeGenPtr(CodeGenContext *context);
     };
 
     class EqExpr : public Expr {
@@ -321,9 +334,12 @@ namespace AST {
         ~EqExpr() = default;
 
         llvm::Value *CodeGen(CodeGenContext *context);
+
+        llvm::Value *CodeGenPtr(CodeGenContext *context);
     };
 
     class AssignExpr : public Expr {
+    public:
         Expr *lhs;  // 赋值符号左侧表达式
         Expr *rhs;  // 赋值符号右侧表达式
 
@@ -332,6 +348,8 @@ namespace AST {
         ~AssignExpr() = default;
 
         llvm::Value *CodeGen(CodeGenContext *context);
+
+        llvm::Value *CodeGenPtr(CodeGenContext *context);
     };
 
     class Variable : public Expr {
@@ -343,6 +361,8 @@ namespace AST {
         ~Variable() = default;
 
         llvm::Value *CodeGen(CodeGenContext *context);
+
+        llvm::Value *CodeGenPtr(CodeGenContext *context);
     };
 
     class Constant : public Expr {
@@ -350,6 +370,10 @@ namespace AST {
         Constant() = default;
 
         virtual ~Constant() = default;
+
+        virtual llvm::Value *CodeGen(CodeGenContext *context) = 0;
+
+        llvm::Value *CodeGenPtr(CodeGenContext *context);
     };
 
     class Boolean : public Constant {
