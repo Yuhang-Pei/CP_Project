@@ -93,6 +93,7 @@ namespace AST {
             class Boolean;
             class Character;
             class Integer;
+            class ConstString;
 }
 
 /* AST 节点的类定义 */
@@ -367,6 +368,17 @@ namespace AST {
         Integer(int intVal) : intVal(intVal) {}
 
         ~Integer() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
+    };
+
+    class ConstString : public Constant {
+    public:
+        std::string strVal; // 代表字符串常量字面量
+
+        ConstString(std::string strVal) : strVal(std::move(strVal)) {}
+
+        ~ConstString() = default;
 
         llvm::Value *CodeGen(CodeGenContext *context);
     };

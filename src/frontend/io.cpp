@@ -179,6 +179,56 @@ void CreatePrintIntFunc(CodeGenContext *context, llvm::Function *printfFunc) {
 }
 
 /**
+ * @brief 创建一个打印字符串常量类型的函数
+ * @param context 上下文
+ * @param printfFunc 可调用的 printf 函数
+ */
+void CreatePrintConstStringFunc(CodeGenContext *context, llvm::Function *printfFunc) {
+    // print() 的形参列表为一个整型变量
+    std::vector<llvm::Type *> printConstStringArgTypes;
+    printConstStringArgTypes.push_back(llvm::Type::getInt8PtrTy(Context));
+
+    // 创建 printConstString() 的函数类型，返回类型为 void
+    llvm::FunctionType *printConstStringFuncType =
+            llvm::FunctionType::get(llvm::Type::getVoidTy(Context), printConstStringArgTypes, false);
+
+    // 创建 printConstString() 函数
+    llvm::Function *printConstStringFunc =
+            llvm::Function::Create(printConstStringFuncType, llvm::Function::ExternalLinkage, llvm::Twine("printConstString"), context->module);
+
+    // 为 printConstString() 创建基本块
+    llvm::BasicBlock *basicBlock = llvm::BasicBlock::Create(Context, "printConstString_entry", printConstStringFunc, 0);
+    // 基本块入栈
+    context->PushBasicBlock(basicBlock);
+
+    // 创建 printf() 的输出格式参数
+    const std::string printConstStringFormat = "%s\n";
+    llvm::Constant *printConstStringFormatStr = llvm::ConstantDataArray::getString(Context, printConstStringFormat);
+    // 获取输出格式参数的 LLVM 类型
+    llvm::ArrayType *printConstStringFormatType =
+            llvm::ArrayType::get(llvm::IntegerType::get(Context, 8), printConstStringFormat.length() + 1);
+    // 创建一个全局变量，存储输出格式参数
+    llvm::GlobalVariable *printConstStringFormatVar =
+            new llvm::GlobalVariable(*context->module, printConstStringFormatType, true, llvm::GlobalValue::PrivateLinkage, printConstStringFormatStr, ".printConstStringFormatStr");
+
+    // 获取 printConstString() 函数的字符串常量参数，作为 printf() 的参数，并命名为 "constStringToPrint"
+    llvm::Value *constStringToPrint = printConstStringFunc->arg_begin();
+    constStringToPrint->setName("constStringToPrint");
+
+    // 创建 printf() 函数的实参列表
+    std::vector<llvm::Value *> printfArgs({ printConstStringFormatVar, constStringToPrint });
+
+    // 发起对 printf() 的调用，以 printfArgs 作为实参列表
+    llvm::CallInst::Create(printfFunc, llvm::ArrayRef(printfArgs), "", basicBlock);
+
+    // 创建返回指令，从 printConstString() 返回
+    llvm::ReturnInst::Create(Context, basicBlock);
+
+    // 基本块出栈
+    context->PopBasicBlock();
+}
+
+/**
  * @brief 创建输入输出相关的内置函数
  * @param context 上下文
  */
@@ -188,4 +238,5 @@ void CreateIOFunc(CodeGenContext *context) {
     CreatePrintBoolFunc(context, printfFunc);
     CreatePrintCharFunc(context, printfFunc);
     CreatePrintIntFunc(context, printfFunc);
+    CreatePrintConstStringFunc(context, printfFunc);
 }

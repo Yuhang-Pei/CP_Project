@@ -23,6 +23,15 @@ char Escape(char c) {
     }
 }
 
+void GetString() {
+    yylval.strVal = new std::string();
+    for (int i = 1; i < yyleng - 1; ++i)
+        if (yytext[i] == '\\')
+            yylval.strVal->push_back(Escape(yytext[++i]));
+        else
+            yylval.strVal->push_back(yytext[i]);
+}
+
 %}
 
 %option noyywrap
@@ -54,6 +63,7 @@ char Escape(char c) {
 [ \n\t]+                ;
 "\'"\\."\'"             { yylval.charVal = Escape(yytext[2]); return CHARACTER; }
 "\'"[^\\']"\'"          { yylval.charVal = yytext[1]; return CHARACTER; }
+"\""(\\.|[^\\"])*"\""   { GetString(); return STRING; }
 .
 
 %%

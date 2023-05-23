@@ -459,6 +459,13 @@ namespace AST {
         return llvm::ConstantInt::get(llvm::Type::getInt32Ty(Context), this->intVal, true);
     }
 
+    llvm::Value *ConstString::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating constant string \"" << this->strVal << "\"..." << std::endl;
+        // 利用 IRBuilder 生成全局字符串常量，并返回字符串常量的指针
+        // （在 C 语言中，字符串常量代表这一字符串第一个字符的内存指针）
+        return Builder.CreateGlobalStringPtr(this->strVal);
+    }
+
     llvm::Value *FuncCall::CodeGen(CodeGenContext *context) {
         std::cout << "Creating call to function " << this->funcName << "()..." << std::endl;
 
