@@ -39,6 +39,7 @@ char Escape(char c) {
 "}"                     { return RBRACE; }
 "=="                    { return EQUAL; }
 "+"		                { return ADD; }
+"*"		                { return MUL; }
 "="                     { return ASSIGN; }
 "if"                    { return IF; }
 "else"                  { return ELSE; }

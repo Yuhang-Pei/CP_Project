@@ -66,6 +66,7 @@ Stmt : Expr SEMI
 
 Expr : FuncCall
      | Expr ADD Expr
+     | Expr MUL Expr
      | IDENTIFIER
      | Constant [新增]
 

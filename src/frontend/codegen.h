@@ -46,7 +46,7 @@ public:
 
     void GenerateCode(AST::Prog *root);
 
-    void GenerateObject(const std::string &fileName) const;
+    // void GenerateObject(const std::string &fileName) const;
 
     void ExecuteCode();
 

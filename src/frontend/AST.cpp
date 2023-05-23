@@ -55,59 +55,59 @@ void CodeGenContext::GenerateCode(AST::Prog *root) {
  * @brief 生成源代码的目标代码
  * @param fileName 目标代码文件的名称
  */
-void CodeGenContext::GenerateObject(const std::string &fileName) const {
-    std::cout << "\033[31mGenerating object code file for the program...\033[0m" << std::endl;
+// void CodeGenContext::GenerateObject(const std::string &fileName) const {
+//     std::cout << "\033[31mGenerating object code file for the program...\033[0m" << std::endl;
 
-    // TargetTriplet (目标三元组) 用来指定体系架构、操作系统和环境
-    // 通过 getDefaultTargetTriple 可以获取到当前系统环境下相应的目标三元组
-    auto targetTriplet = llvm::sys::getDefaultTargetTriple();
+//     // TargetTriplet (目标三元组) 用来指定体系架构、操作系统和环境
+//     // 通过 getDefaultTargetTriple 可以获取到当前系统环境下相应的目标三元组
+//     auto targetTriplet = llvm::sys::getDefaultTargetTriple();
 
-    // 初始化目标信息、汇编解析器等内容
-    llvm::InitializeAllTargetInfos();
-    llvm::InitializeAllTargets();
-    llvm::InitializeAllTargetMCs();
-    llvm::InitializeAllAsmParsers();
-    llvm::InitializeAllAsmPrinters();
+//     // 初始化目标信息、汇编解析器等内容
+//     llvm::InitializeAllTargetInfos();
+//     llvm::InitializeAllTargets();
+//     llvm::InitializeAllTargetMCs();
+//     llvm::InitializeAllAsmParsers();
+//     llvm::InitializeAllAsmPrinters();
 
-    std::string error;
-    // 根据目标三元组获取对应的目标
-    const llvm::Target *target = llvm::TargetRegistry::lookupTarget(targetTriplet, error);
-    if (target == nullptr)
-        throw std::runtime_error(error);
+//     std::string error;
+//     // 根据目标三元组获取对应的目标
+//     const llvm::Target *target = llvm::TargetRegistry::lookupTarget(targetTriplet, error);
+//     if (target == nullptr)
+//         throw std::runtime_error(error);
 
-    // 生成重定位模型，用来指定链接器在链接时如何处理符号地址 (重定位在 OS 课程中讲过，可以回去复习)
-    auto relocModel = std::optional<llvm::Reloc::Model>();
-    // 创建 llvm::TargetMachine，它是将 LLVM IR 转化为目标机器代码的核心组建
-    llvm::TargetMachine *targetMachine =
-            target->createTargetMachine(targetTriplet, "generic", "", llvm::TargetOptions(), relocModel);
+//     // 生成重定位模型，用来指定链接器在链接时如何处理符号地址 (重定位在 OS 课程中讲过，可以回去复习)
+//     auto relocModel = std::optional<llvm::Reloc::Model>();
+//     // 创建 llvm::TargetMachine，它是将 LLVM IR 转化为目标机器代码的核心组建
+//     llvm::TargetMachine *targetMachine =
+//             target->createTargetMachine(targetTriplet, "generic", "", llvm::TargetOptions(), relocModel);
 
-    // 设置 module 的数据布局，数据布局是 llvm::Module 的一个属性
-    // llvm::DataLayout 描述了不同类型的数据在内存中的表示方式和布局方式
-    // 数据布局与系统环境相关，因此需要通过 llvm::TargetMachine 的 createDataLayout() 来得到
-    this->module->setDataLayout(targetMachine->createDataLayout());
-    // 设置 module 的目标三元组
-    this->module->setTargetTriple(targetTriplet);
+//     // 设置 module 的数据布局，数据布局是 llvm::Module 的一个属性
+//     // llvm::DataLayout 描述了不同类型的数据在内存中的表示方式和布局方式
+//     // 数据布局与系统环境相关，因此需要通过 llvm::TargetMachine 的 createDataLayout() 来得到
+//     this->module->setDataLayout(targetMachine->createDataLayout());
+//     // 设置 module 的目标三元组
+//     this->module->setTargetTriple(targetTriplet);
 
-    std::error_code errorCode;
-    // 创建 llvm::raw_fd_ostream 类的输出文件流对象
-    llvm::raw_fd_ostream objectFile(fileName, errorCode);
-    // llvm::raw_fd_ostream objectFile(fileName, errorCode, llvm::sys::fs::OF_None);
-    if (errorCode)
-        throw std::runtime_error(errorCode.message());
+//     std::error_code errorCode;
+//     // 创建 llvm::raw_fd_ostream 类的输出文件流对象
+//     llvm::raw_fd_ostream objectFile(fileName, errorCode);
+//     // llvm::raw_fd_ostream objectFile(fileName, errorCode, llvm::sys::fs::OF_None);
+//     if (errorCode)
+//         throw std::runtime_error(errorCode.message());
 
-    // 将输出文件的类型设为目标文件
-    llvm::CodeGenFileType fileType = llvm::CGFT_ObjectFile;
-    // 创建 PassManager，用于将生成的内容输出到目标文件中
-    llvm::legacy::PassManager passManager;
-    // 将 targetMachine 中的包含的优化和代码生成 pass 传入到 passManager 中
-    targetMachine->addPassesToEmitFile(passManager, objectFile, nullptr, fileType);
-    // passManager 执行，将目标代码输入到目标文件
-    passManager.run(*this->module);
-    // 刷新输出流
-    objectFile.flush();
+//     // 将输出文件的类型设为目标文件
+//     llvm::CodeGenFileType fileType = llvm::CGFT_ObjectFile;
+//     // 创建 PassManager，用于将生成的内容输出到目标文件中
+//     llvm::legacy::PassManager passManager;
+//     // 将 targetMachine 中的包含的优化和代码生成 pass 传入到 passManager 中
+//     targetMachine->addPassesToEmitFile(passManager, objectFile, nullptr, fileType);
+//     // passManager 执行，将目标代码输入到目标文件
+//     passManager.run(*this->module);
+//     // 刷新输出流
+//     objectFile.flush();
 
-    std::cout << "\033[32mObject code file has been generated: " << fileName << "\033[0m\n" << std::endl;
-}
+//     std::cout << "\033[32mObject code file has been generated: " << fileName << "\033[0m\n" << std::endl;
+// }
 
 /**
  * @brief 直接执行编译后的源代码
@@ -385,7 +385,8 @@ namespace AST {
         Builder.CreateCondBr(ifCondition, thenBB, elseBB);
 
         // 在 then 基本块中添加指令
-        currentFunc->insert(currentFunc->end(), thenBB);    // 在函数的基本块列表的末尾添加 thenBB
+        // currentFunc->insert(currentFunc->end(), thenBB);    // 在函数的基本块列表的末尾添加 thenBB
+        currentFunc->getBasicBlockList().push_back(elseBB) ;    // 在函数的基本块列表的末尾添加 thenBB
         Builder.SetInsertPoint(thenBB); // 将插入指令的位置设为 thenBB
         if (this->thenStmt) {
             context->PushBasicBlock(thenBB);
@@ -395,7 +396,8 @@ namespace AST {
         Builder.CreateBr(mergeBB);
 
         // 在 else 基本块中添加指令
-        currentFunc->insert(currentFunc->end(), elseBB);    // 在函数的基本块列表的末尾添加 elseBB
+        // currentFunc->insert(currentFunc->end(), elseBB);    // 在函数的基本块列表的末尾添加 elseBB
+        currentFunc->getBasicBlockList().push_back(elseBB) ;    // 在函数的基本块列表的末尾添加 thenBB
         Builder.SetInsertPoint(elseBB); // 将插入指令的位置设为 elseBB
         if (this->elseStmt) {
             context->PushBasicBlock(elseBB);
@@ -405,7 +407,8 @@ namespace AST {
         Builder.CreateBr(mergeBB);
 
         // 在 merge 基本块中添加指令
-        currentFunc->insert(currentFunc->end(), mergeBB);   // 在函数的基本块列表的末尾添加 mergeBB
+        // currentFunc->insert(currentFunc->end(), mergeBB);   // 在函数的基本块列表的末尾添加 mergeBB
+        currentFunc->getBasicBlockList().push_back(mergeBB) ;    // 在函数的基本块列表的末尾添加 thenBB
         Builder.SetInsertPoint(mergeBB);    // 将插入指令的位置设为 mergeBB
 
         std::cout << "If statement has been created" << std::endl;
@@ -495,6 +498,20 @@ namespace AST {
         // 创建加法表达式指令
         // TODO: 只实现了整型的加法
         return Builder.CreateAdd(LHS, RHS);
+    }
+    llvm::Value *MulExpr::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating mul expression..." << std::endl;
+
+        // 对左表达式执行 CodeGen() 操作
+        llvm::Value *LHS = this->lhs->CodeGen(context);
+        // 对右表达式执行 CodeGen() 操作
+        llvm::Value *RHS = this->rhs->CodeGen(context);
+
+        std::cout << "Mul expression has been created" << std::endl;
+
+        // 创建加法表达式指令
+        // TODO: 只实现了整型的加法
+        return Builder.CreateMul(LHS, RHS);
     }
 
     llvm::Value *EqExpr::CodeGen(CodeGenContext *context) {

@@ -41,7 +41,7 @@
 #include <llvm/Transforms/InstCombine/InstCombine.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/Scalar/GVN.h>
-#include <llvm/MC/TargetRegistry.h>
+// #include <llvm/MC/TargetRegistry.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Host.h>
 #include <llvm/Support/TargetSelect.h>
@@ -85,6 +85,7 @@ namespace AST {
         class FuncCall;
             using Args = std::vector<Expr *>;
         class AddExpr;
+        class MulExpr;
         class EqExpr;
         class NEExpr;
         class AssignExpr;
@@ -293,6 +294,17 @@ namespace AST {
         AddExpr(Expr *lhs, Expr *rhs) : lhs(lhs), rhs(rhs) {}
 
         ~AddExpr() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
+    };
+    class MulExpr : public Expr {
+    public:
+        Expr *lhs;  // 加法表达式的左侧表达式
+        Expr *rhs;  // 加法表达式的右侧表达式
+
+        MulExpr(Expr *lhs, Expr *rhs) : lhs(lhs), rhs(rhs) {}
+
+        ~MulExpr() = default;
 
         llvm::Value *CodeGen(CodeGenContext *context);
     };
