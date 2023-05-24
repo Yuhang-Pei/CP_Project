@@ -127,6 +127,55 @@ void CreatePrintCharFunc(CodeGenContext *context, llvm::Function *printfFunc) {
     // 基本块出栈
     context->PopBasicBlock();
 }
+/**
+ * @brief 创建一个打印 double 类型的函数
+ * @param context 上下文
+ * @param printfFunc 可调用的 printf 函数
+ */
+void CreatePrintDoubleFunc(CodeGenContext *context, llvm::Function *printfFunc) {
+    // printDouble() 的形参列表为一个整型变量
+    std::vector<llvm::Type *> printDoubleArgTypes;
+    printDoubleArgTypes.push_back(llvm::Type::getDoubleTy(Context));
+
+    // 创建 printDouble() 的函数类型，返回类型为 void
+    llvm::FunctionType *printDoubleFuncType =
+            llvm::FunctionType::get(llvm::Type::getVoidTy(Context), printDoubleArgTypes, false);
+
+    // 创建 printDouble() 函数
+    llvm::Function *printDoubleFunc =
+            llvm::Function::Create(printDoubleFuncType, llvm::Function::ExternalLinkage, llvm::Twine("printDouble"), context->module);
+
+    // 为 printDouble() 创建基本块
+    llvm::BasicBlock *basicBlock = llvm::BasicBlock::Create(Context, "printDouble_entry", printDoubleFunc, 0);
+    // 基本块入栈
+    context->PushBasicBlock(basicBlock);
+
+    // 创建 printf() 的输出格式参数
+    const std::string printDoubleFormat = "%lf\n";
+    llvm::Constant *printDoubleFormatStr = llvm::ConstantDataArray::getString(Context, printDoubleFormat);
+    // 获取输出格式参数的 LLVM 类型
+    llvm::ArrayType *printDoubleFormatType =
+            llvm::ArrayType::get(llvm::IntegerType::get(Context, 8), printDoubleFormat.length() + 1);
+    // 创建一个全局变量，存储输出格式参数
+    llvm::GlobalVariable *printDoubleFormatVar =
+            new llvm::GlobalVariable(*context->module, printDoubleFormatType, true, llvm::GlobalValue::PrivateLinkage, printDoubleFormatStr, ".printDoubleFormatStr");
+
+    // 获取 printDouble() 函数的整型参数，作为 printf() 的参数，并命名为 "doubleToPrint"
+    llvm::Value *doubleToPrint = printDoubleFunc->arg_begin();
+    doubleToPrint->setName("doubleToPrint");
+
+    // 创建 printf() 函数的实参列表
+    std::vector<llvm::Value *> printfArgs({ printDoubleFormatVar, doubleToPrint });
+
+    // 发起对 printf() 的调用，以 printfArgs 作为实参列表
+    llvm::CallInst::Create(printfFunc, llvm::ArrayRef(printfArgs), "", basicBlock);
+
+    // 创建返回指令，从 printDouble() 返回
+    llvm::ReturnInst::Create(Context, basicBlock);
+
+    // 基本块出栈
+    context->PopBasicBlock();
+}
 
 /**
  * @brief 创建一个打印 int 类型的函数
@@ -234,7 +283,7 @@ void CreatePrintConstStringFunc(CodeGenContext *context, llvm::Function *printfF
  */
 void CreateIOFunc(CodeGenContext *context) {
     llvm::Function *printfFunc = CreatePrintfFunc(context);
-
+    CreatePrintDoubleFunc(context, printfFunc);
     CreatePrintBoolFunc(context, printfFunc);
     CreatePrintCharFunc(context, printfFunc);
     CreatePrintIntFunc(context, printfFunc);

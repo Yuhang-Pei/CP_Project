@@ -59,10 +59,12 @@ void GetString() {
 "bool"                  { return BOOL; }
 "char"                  { return CHAR; }
 "int"                   { return INT; }
+"double"                { return DOUBLE;}
 "true"                  { return TRUE; }
 "false"                 { return FALSE; }
 [a-zA-Z_][a-zA-Z0-9_]*  { yylval.identifier = new std::string(yytext, yyleng); return IDENTIFIER; }
 [1-9][0-9]*|0           { sscanf(yytext, "%d", &(yylval.intVal)); return INTEGER; }
+[0-9]+\.[0-9]+ { sscanf(yytext, "%lf", &(yylval.doubleVal)); return REAL; }
 [ \n\t]+                ;
 "\'"\\."\'"             { yylval.charVal = Escape(yytext[2]); return CHARACTER; }
 "\'"[^\\']"\'"          { yylval.charVal = yytext[1]; return CHARACTER; }
