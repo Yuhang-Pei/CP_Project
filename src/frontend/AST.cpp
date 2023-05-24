@@ -52,6 +52,7 @@ void CodeGenContext::GenerateCode(AST::Prog *root) {
     std::cout << std::endl;
 }
 
+#if LLVM_VERSION_MAJOR >= 16
 /**
  * @brief 生成源代码的目标代码
  * @param fileName 目标代码文件的名称
@@ -109,6 +110,7 @@ void CodeGenContext::GenerateObject(const std::string &fileName) const {
 
     std::cout << "\033[32mObject code file has been generated: " << fileName << "\033[0m\n" << std::endl;
 }
+#endif
 
 /**
  * @brief 直接执行编译后的源代码

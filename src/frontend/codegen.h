@@ -46,7 +46,9 @@ public:
 
     void GenerateCode(AST::Prog *root);
 
+#if LLVM_VERSION_MAJOR >= 16
     void GenerateObject(const std::string &fileName) const;
+#endif
 
     void ExecuteCode();
 
