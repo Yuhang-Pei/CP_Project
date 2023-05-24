@@ -58,6 +58,8 @@ AST::Prog *Root;
     AST::DivExpr *divExpr;
     AST::EqExpr *eqExpr;
     AST::NeqExpr *neqExpr;
+    AST::GreatExpr *greatExpr;
+    AST::LessExpr *lessExpr;
     AST::AssignExpr *assignExpr;
     AST::Variable *variable;
     AST::Constant *constant;
@@ -77,6 +79,8 @@ AST::Prog *Root;
 %token<token>		DIV
 %token<token>		MUL
 %token<token>		EQUAL NEQ
+%token<token>		GREAT
+%token<token>		LESS
 %token<token>		ASSIGN
 %token<token>		VOID BOOL CHAR INT
 %token<token>		IF ELSE FOR RETURN
@@ -199,6 +203,8 @@ Expr : FuncCall { $$ = $1; }
      | Expr DIV Expr { $$ = new AST::DivExpr($1, $3); }
      | Expr EQUAL Expr { $$ = new AST::EqExpr($1, $3); }
      | Expr NEQ Expr { $$ = new AST::NeqExpr($1, $3); }
+     | Expr GREAT Expr { $$ = new AST::GreatExpr($1, $3); }
+     | Expr LESS Expr { $$ = new AST::LessExpr($1, $3); }
      | Expr ASSIGN Expr { $$ = new AST::AssignExpr($1, $3); }
      | IDENTIFIER { $$ = new AST::Variable(*$1); }
      | Constant { $$ = $1; }

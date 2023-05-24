@@ -717,6 +717,44 @@ namespace AST {
         throw std::logic_error("Logical inequality expression cannot be used as left-value");
     }
 
+    llvm::Value *GreatExpr::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating logical greater expression..." << std::endl;
+
+        // 对左表达式执行 CodeGen() 操作
+        llvm::Value *LHS = this->lhs->CodeGen(context);
+        // 对右表达式执行 CodeGen() 操作
+        llvm::Value *RHS = this->rhs->CodeGen(context);
+
+        std::cout << "Logical Greter expression has been created" << std::endl;
+
+        // 创建逻辑等于表达式指令
+        // TODO: 只实现了整型的逻辑大于
+        return Builder.CreateICmpSGT(LHS, RHS);
+    }
+
+    llvm::Value *GreatExpr::CodeGenPtr(CodeGenContext *context) {
+        throw std::logic_error("Logical Greater expression cannot be used as left-value");
+    }
+
+    llvm::Value *LessExpr::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating logical less expression..." << std::endl;
+
+        // 对左表达式执行 CodeGen() 操作
+        llvm::Value *LHS = this->lhs->CodeGen(context);
+        // 对右表达式执行 CodeGen() 操作
+        llvm::Value *RHS = this->rhs->CodeGen(context);
+
+        std::cout << "Logical less expression has been created" << std::endl;
+
+        // 创建逻辑等于表达式指令
+        // TODO: 只实现了整型的逻辑小于
+        return Builder.CreateICmpSLT(LHS, RHS);
+    }
+
+    llvm::Value *LessExpr::CodeGenPtr(CodeGenContext *context) {
+        throw std::logic_error("Logical less expression cannot be used as left-value");
+    }
+
     llvm::Value *AssignExpr::CodeGen(CodeGenContext *context) {
         std::cout << "Creating assignment expression..." << std::endl;
 
