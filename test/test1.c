@@ -9,6 +9,10 @@ char returnChar() {
 
 int main(void) {
     char c = 'c';
+    if(10<20)
+    {
+        printInt(111);
+    }
     printInt(20-10*2);
     printInt(20/10);
     printInt(1 * 10 * 100);

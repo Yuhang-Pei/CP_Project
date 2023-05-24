@@ -48,11 +48,14 @@ void GetString() {
 "}"                     { return RBRACE; }
 "=="                    { return EQUAL; }
 "!="                    { return NEQ; }
+">"                     { return GREAT; }
+"<"                     { return LESS; }
 "+"		                { return ADD; }
 "*"		                { return MUL; }
 "-"                     { return SUB; }
 "/"                     { return DIV; }
 "="                     { return ASSIGN; }
+
 "if"                    { return IF; }
 "else"                  { return ELSE; }
 "for"                   { return FOR; }

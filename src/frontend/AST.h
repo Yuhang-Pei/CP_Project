@@ -95,6 +95,8 @@ namespace AST {
         class SubExpr;
         class EqExpr;
         class NeqExpr;
+        class GreatExpr;
+        class LessExpr;
         class AssignExpr;
         class CommaExpr;
         class Variable;
@@ -407,7 +409,32 @@ namespace AST {
 
         llvm::Value *CodeGenPtr(CodeGenContext *context);
     };
+    class GreatExpr : public Expr {
+    public:
+        Expr *lhs;
+        Expr *rhs;
 
+        GreatExpr(Expr *lhs, Expr *rhs) : lhs(lhs), rhs(rhs) {}
+
+        ~GreatExpr() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
+
+        llvm::Value *CodeGenPtr(CodeGenContext *context);
+    };
+    class LessExpr : public Expr {
+    public:
+        Expr *lhs;
+        Expr *rhs;
+
+        LessExpr(Expr *lhs, Expr *rhs) : lhs(lhs), rhs(rhs) {}
+
+        ~LessExpr() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
+
+        llvm::Value *CodeGenPtr(CodeGenContext *context);
+    };
     class AssignExpr : public Expr {
     public:
         Expr *lhs;  // 赋值符号左侧表达式
