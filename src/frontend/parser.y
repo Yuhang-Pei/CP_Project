@@ -4,6 +4,7 @@
 #include <cstdlib>
 
 #include "AST.h"
+#include "codegen.h"
 
 extern int yylex(void);
 void yyerror(const char *str) {
@@ -12,6 +13,10 @@ void yyerror(const char *str) {
 }
 
 AST::Prog *Root;
+
+AST::TypeSpecifier *CurrentBaseType;
+
+std::string *CurrentVarName;
 
 %}
 
@@ -40,6 +45,8 @@ AST::Prog *Root;
 
     AST::TypeSpecifier *typeSpecifier;
     AST::BuiltInType *builtInType;
+    AST::ArrType *arrType;
+    AST::PtrType *ptrType;
 
     AST::Stmt *stmt;
     AST::Stmts *stmts;
@@ -70,20 +77,17 @@ AST::Prog *Root;
     AST::Real *real;
 }
 
-%token<token>		TRUE FALSE
+%token<token>		TRUE FALSE NULLPTR
 %token<charVal>		CHARACTER
 %token<intVal>		INTEGER
-%token<doubleVal>   REAL
+%token<doubleVal>   	REAL
 %token<strVal>		STRING
 %token<identifier>	IDENTIFIER
-%token<token>		SEMI COMMA LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE
-%token<token>		ADD
-%token<token>		SUB
-%token<token>		DIV
-%token<token>		MUL
+%token<token>		SEMI COMMA DOT LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE
+%token<token>		ADD SUB MUL DIV
 %token<token>		EQUAL NEQ
-%token<token>		GREAT
-%token<token>		LESS
+%token<token>		GREAT LESS
+%token<token>		NOT
 %token<token>		ASSIGN
 %token<token>		VOID BOOL CHAR INT DOUBLE
 %token<token>		IF ELSE FOR RETURN
@@ -102,8 +106,9 @@ AST::Prog *Root;
 %type<varInit>		VarInit
 %type<varInitList>	VarInitList
 
-%type<typeSpecifier>	TypeSpecifier
+%type<typeSpecifier>	TypeSpecifier VarDefBaseType ComplexVar
 %type<builtInType>	BuiltInType
+%type<intVal>		ArrSize
 
 %type<stmt>		Stmt
 %type<stmts>		Stmts
@@ -121,8 +126,12 @@ AST::Prog *Root;
 %type<args>		Args
 %type<constant>		Constant
 
+%type<identifier>	IdentifierUse
+
 %left   ADD SUB
 %left   MUL DIV
+%right	NOT
+%left 	DOT
 
 %start  Prog
 
@@ -138,17 +147,31 @@ Unit : Def { $$ = $1; }
 Def : FuncDef { $$ = $1; }
     | VarDef { $$ = $1; }
 
-FuncDef : TypeSpecifier IDENTIFIER LPAREN Params RPAREN FuncBody { $$ = new AST::FuncDef($1, *$2, $4, $6); }
+FuncDef : TypeSpecifier IdentifierUse LPAREN Params RPAREN FuncBody { $$ = new AST::FuncDef($1, *$2, $4, $6); }
 
 FuncBody : LBRACE Stmts RBRACE { $$ = new AST::FuncBody($2); }
 
-VarDef : TypeSpecifier VarInitList SEMI { $$ = new AST::VarDef($1, $2); }
+VarDef : VarDefBaseType VarInitList SEMI { $$ = new AST::VarDef($1, $2); }
+
+VarDefBaseType : TypeSpecifier { $$ = $1; CurrentBaseType = $$; }
 
 VarInitList : VarInitList COMMA VarInit { $$ = $1; $$->push_back($3); }
             | VarInit { $$ = new AST::VarInitList(); $$->push_back($1); }
 
-VarInit : IDENTIFIER ASSIGN Expr { $$ = new AST::VarInit(*$1, $3); }
-        | IDENTIFIER { $$ = new AST::VarInit(*$1); }
+VarInit : IdentifierUse ASSIGN Expr { $$ = new AST::VarInit(*$1, $3); }
+        | IdentifierUse { $$ = new AST::VarInit(*$1); }
+	| ComplexVar { $$ = new AST::VarInit(*CurrentVarName, $1, CurrentBaseType); }
+
+ComplexVar : IdentifierUse ArrSize %prec DOT { CurrentVarName = $1; $$ = new AST::ArrType(nullptr, $2); }
+	   | MUL IdentifierUse %prec NOT { CurrentVarName = $2; $$ = new AST::PtrType(nullptr); }
+	   | ComplexVar ArrSize %prec DOT { $$ = new AST::ArrType($1, $2); }
+	   | MUL ComplexVar %prec NOT { $$ = new AST::PtrType($2); }
+	   | LPAREN ComplexVar RPAREN %prec DOT { $$ = $2; }
+
+ArrSize : LBRACKET TRUE RBRACKET { $$ = true; }
+	| LBRACKET FALSE RBRACKET { $$ = false; }
+	| LBRACKET CHARACTER RBRACKET { $$ = $2; }
+	| LBRACKET INTEGER RBRACKET { $$ = $2; }
 
 TypeSpecifier : BuiltInType { $$ = $1; }
 
@@ -163,7 +186,7 @@ Params : Params COMMA Param { $$ = $1; $$->push_back($3); }
        | VOID { $$ = new AST::Params(); }
        | { $$ = new AST::Params(); }
 
-Param : TypeSpecifier IDENTIFIER { $$ = new AST::Param($1, *$2); }
+Param : TypeSpecifier IdentifierUse { $$ = new AST::Param($1, *$2); }
 
 Block : LBRACE Stmts RBRACE { $$ = new AST::Block($2); }
 
@@ -210,7 +233,7 @@ Expr : FuncCall { $$ = $1; }
      | Expr GREAT Expr { $$ = new AST::GreatExpr($1, $3); }
      | Expr LESS Expr { $$ = new AST::LessExpr($1, $3); }
      | Expr ASSIGN Expr { $$ = new AST::AssignExpr($1, $3); }
-     | IDENTIFIER { $$ = new AST::Variable(*$1); }
+     | IdentifierUse { $$ = new AST::Variable(*$1); }
      | Constant { $$ = $1; }
 
 Constant : TRUE { $$ = new AST::Boolean(true); }
@@ -220,10 +243,13 @@ Constant : TRUE { $$ = new AST::Boolean(true); }
          | REAL { $$ = new AST::Real($1); }
          | STRING { $$ = new AST::ConstString(*$1); }
 
-FuncCall : IDENTIFIER LPAREN Args RPAREN { $$ = new AST::FuncCall(*$1, $3); }
+FuncCall : IdentifierUse LPAREN Args RPAREN { $$ = new AST::FuncCall(*$1, $3); }
 
 Args : Args COMMA Expr { $$ = $1; $$->push_back($3); }
      | Expr { $$ = new AST::Args(); $$->push_back($1); }
      | { $$ = new AST::Args(); }
+
+IdentifierUse : LPAREN IdentifierUse RPAREN { $$ = $2; }
+	      | IDENTIFIER { $$ = $1; }
 
 %%

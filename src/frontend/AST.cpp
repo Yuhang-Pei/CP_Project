@@ -213,33 +213,49 @@ namespace AST {
     }
 
     llvm::Value *VarDef::CodeGen(CodeGenContext *context) {
-        llvm::Type *LLVMType = this->typeSpecifier->GetLLVMType(context);
+        llvm::Type *LLVMBaseType = this->typeSpecifier->GetLLVMType(context);
 
         // 处理类型未知的错误
-        if (LLVMType == nullptr)
+        if (LLVMBaseType == nullptr)
             throw std::logic_error("Define variables with unknown type");
         // 处理定义 void 类型的错误
-        if (LLVMType->isVoidTy())
+        if (LLVMBaseType->isVoidTy())
             throw std::logic_error("Cannot define variables of \"void\" type");
 
         // 逐个创建 VarInitList 中的每个变量
         for (auto var : *this->varInitList) {
-            std::cout << "Creating variable " << var->varName << " with type " << this->typeSpecifier->GetTypeName() << std::endl;
+            if (var->complexType) {
+                std::cout << "Creating variable " << var->varName << " with type " << var->complexType->GetTypeName() << std::endl;
 
-            llvm::IRBuilder<> tmpBuilder(context->GetCurrentBlock());
-            llvm::AllocaInst *alloca = tmpBuilder.CreateAlloca(LLVMType, nullptr, var->varName);
+                llvm::IRBuilder<> tmpBuilder(context->GetCurrentBlock());
+                llvm::Type *LLVMComplexType = var->complexType->GetLLVMType(context);
+                llvm::AllocaInst *alloca = tmpBuilder.CreateAlloca(LLVMComplexType, nullptr, var->varName);
 
-            // 在变量表中插入 (varName, allocaInst) 对
-            // 如果添加变量失败，将 alloca 从基本块中移除;
-            if (!context->AddLocalVar(alloca, var->varName)) {
-                alloca->eraseFromParent();
-                throw std::logic_error("Refine variable " + var->varName);
+                // 在变量表中插入 (varName, allocaInst) 对
+                // 如果添加变量失败，将 alloca 从基本块中移除;
+                if (!context->AddLocalVar(alloca, var->varName)) {
+                    alloca->eraseFromParent();
+                    throw std::logic_error("Refine variable " + var->varName);
+                }
             }
+            else {
+                std::cout << "Creating variable " << var->varName << " with type " << this->typeSpecifier->GetTypeName() << std::endl;
 
-            // 处理包含初始值的情况
-            if (var->initExpr) {
-                /// TODO: 需要处理类型转换的问题
-                Builder.CreateStore(var->initExpr->CodeGen(context), alloca);
+                llvm::IRBuilder<> tmpBuilder(context->GetCurrentBlock());
+                llvm::AllocaInst *alloca = tmpBuilder.CreateAlloca(LLVMBaseType, nullptr, var->varName);
+
+                // 在变量表中插入 (varName, allocaInst) 对
+                // 如果添加变量失败，将 alloca 从基本块中移除;
+                if (!context->AddLocalVar(alloca, var->varName)) {
+                    alloca->eraseFromParent();
+                    throw std::logic_error("Refine variable " + var->varName);
+                }
+
+                // 处理包含初始值的情况
+                if (var->initExpr) {
+                    /// TODO: 需要处理类型转换的问题
+                    Builder.CreateStore(var->initExpr->CodeGen(context), alloca);
+                }
             }
 
             std::cout << "Variable " << var->varName << " has been created" << std::endl;
@@ -249,9 +265,53 @@ namespace AST {
         return nullptr;
     }
 
+    VarInit::VarInit(std::string varName, TypeSpecifier *complexType, TypeSpecifier *baseType, Expr *initExpr)
+            : varName(std::move(varName)), initExpr(initExpr), complexType(complexType) {
+        TypeSpecifier *leafNode = ReverseComplexType();
+        if (leafNode->isArr)
+            static_cast<ArrType *>(leafNode)->elementType = baseType;
+        else if (leafNode->isPtr)
+            static_cast<PtrType *>(leafNode)->objectType = baseType;
+    }
+
     llvm::Value *VarInit::CodeGen(CodeGenContext *context) {
         // 变量初始化结点不需要 CodeGen() 操作，故直接返回空指针
         return nullptr;
+    }
+
+    TypeSpecifier *VarInit::ReverseComplexType() {
+        TypeSpecifier *firstNode = this->complexType, *curNode = firstNode, *fatherNode;
+
+        ArrType *arrNode;
+        PtrType *ptrNode;
+        if (curNode->isArr) {
+            arrNode = static_cast<ArrType *>(curNode);
+            fatherNode = arrNode->_fatherType;
+        }
+        else if (curNode->isPtr) {
+            ptrNode = static_cast<PtrType *>(curNode);
+            fatherNode = ptrNode->_fatherType;
+        }
+
+        while (fatherNode) {
+            if (fatherNode->isArr)
+                static_cast<ArrType *>(fatherNode)->elementType = curNode;
+            else if (fatherNode->isPtr)
+                static_cast<PtrType *>(fatherNode)->objectType = curNode;
+
+            curNode = fatherNode;
+            if (curNode->isArr) {
+                arrNode = static_cast<ArrType *>(curNode);
+                fatherNode = arrNode->_fatherType;
+            }
+            else if (curNode->isPtr) {
+                ptrNode = static_cast<PtrType *>(curNode);
+                fatherNode = ptrNode->_fatherType;
+            }
+        }
+
+        this->complexType = curNode;
+        return firstNode;
     }
 
     llvm::Type *BuiltInType::GetLLVMType(CodeGenContext *context) {
@@ -271,6 +331,22 @@ namespace AST {
         }
 
         return this->LLVMType;
+    }
+
+    llvm::Type *ArrType::GetLLVMType(CodeGenContext *context) {
+        if (this->LLVMType)
+            return this->LLVMType;
+
+        llvm::Type *LLVMElementType = this->elementType->GetLLVMType(context);
+        return llvm::ArrayType::get(LLVMElementType, size);
+    }
+
+    llvm::Type *PtrType::GetLLVMType(CodeGenContext *context) {
+        if (this->LLVMType)
+            return this->LLVMType;
+
+        llvm::Type *LLVMObjectType = this->objectType->GetLLVMType(context);
+        return llvm::PointerType::get(LLVMObjectType, 0);
     }
 
     std::string BuiltInType::GetTypeName() {

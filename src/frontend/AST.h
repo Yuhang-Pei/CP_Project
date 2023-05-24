@@ -76,6 +76,8 @@ namespace AST {
 
     class TypeSpecifier;
         class BuiltInType;
+        class ArrType;
+        class PtrType;
 
     class Stmt;
     using Stmts = std::vector<Stmt *>;
@@ -89,6 +91,7 @@ namespace AST {
     class Expr;
         class FuncCall;
             using Args = std::vector<Expr *>;
+        class SubscriptExpr;
         class AddExpr;
         class MulExpr;
         class DivExpr;
@@ -184,19 +187,27 @@ namespace AST {
 
     class VarInit : public Node {
     public:
-        std::string varName;    // 变量名称
-        Expr *initExpr;         // 变量初始化表达式
+        std::string varName;        // 变量名称
+        Expr *initExpr;             // 变量初始化表达式
+        TypeSpecifier *complexType; // 用于指明指针、数组构成的复杂类型
 
-        VarInit(std::string varName, Expr *initExpr = nullptr) : varName(std::move(varName)), initExpr(initExpr) {}
+        VarInit(std::string varName, Expr *initExpr = nullptr) : varName(std::move(varName)), initExpr(initExpr), complexType(nullptr) {}
+
+        VarInit(std::string varName, TypeSpecifier *complexType, TypeSpecifier *baseType, Expr *initExpr = nullptr);
 
         ~VarInit() = default;
 
         llvm::Value *CodeGen(CodeGenContext *context);
+
+    private:
+        TypeSpecifier *ReverseComplexType();
     };
 
     class TypeSpecifier : public Node {
     public:
         llvm::Type *LLVMType;       // 类型对应的 LLVM 类型
+        bool isArr = false;
+        bool isPtr = false;
 
         TypeSpecifier() : LLVMType(nullptr) {}
 
@@ -225,6 +236,41 @@ namespace AST {
         std::string GetTypeName();
 
         llvm::Value *CodeGen(CodeGenContext *context) { return nullptr; }
+    };
+
+    class ArrType : public TypeSpecifier {
+    public:
+        TypeSpecifier *elementType = nullptr;
+        size_t size;
+        TypeSpecifier *_fatherType;
+
+        ArrType(TypeSpecifier *_fatherType, const size_t size) : _fatherType(_fatherType), size(size) { this->isArr = true; }
+
+        ~ArrType() = default;
+
+        // TODO: 以下函数未实现
+        llvm::Value *CodeGen(CodeGenContext *context) { return nullptr; }
+
+        llvm::Type *GetLLVMType(CodeGenContext *context);
+
+        std::string GetTypeName() { return "array"; }
+    };
+
+    class PtrType : public TypeSpecifier {
+    public:
+        TypeSpecifier *objectType = nullptr;
+        TypeSpecifier *_fatherType;
+
+        PtrType(TypeSpecifier *_fatherType) : _fatherType(_fatherType) { this->isPtr = true; }
+
+        ~PtrType() = default;
+
+        // TODO: 以下函数未实现
+        llvm::Value *CodeGen(CodeGenContext *context) { return nullptr; }
+
+        llvm::Type *GetLLVMType(CodeGenContext *context);
+
+        std::string GetTypeName() { return "pointer"; }
     };
 
     class Block : public Stmt {
@@ -331,6 +377,18 @@ namespace AST {
         llvm::Value *CodeGenPtr(CodeGenContext *context);
     };
 
+//    class SubscriptExpr : public Expr {
+//    public:
+//        Expr *array;
+//        Expr *index;
+//
+//        SubscriptExpr(Expr *array, Expr *index) : array(array), index(index) {}
+//
+//        ~SubscriptExpr() = default;
+//
+//
+//    };
+
     class AddExpr : public Expr {
     public:
         Expr *lhs;  // 加法表达式的左侧表达式
@@ -358,10 +416,11 @@ namespace AST {
 
         llvm::Value *CodeGenPtr(CodeGenContext *context);
     };
+
     class DivExpr : public Expr {
     public:
-        Expr *lhs;
-        Expr *rhs;
+        Expr *lhs;  // 除法表达式的左侧表达式
+        Expr *rhs;  // 除法表达式的右侧表达式
 
         DivExpr(Expr *lhs, Expr *rhs) : lhs(lhs), rhs(rhs) {}
 
@@ -371,10 +430,11 @@ namespace AST {
 
         llvm::Value *CodeGenPtr(CodeGenContext *context);
     };
+
     class SubExpr : public Expr {
     public:
-        Expr *lhs;  // 加法表达式的左侧表达式
-        Expr *rhs;  // 加法表达式的右侧表达式
+        Expr *lhs;  // 减法表达式的左侧表达式
+        Expr *rhs;  // 减法表达式的右侧表达式
 
         SubExpr(Expr *lhs, Expr *rhs) : lhs(lhs), rhs(rhs) {}
 
@@ -384,6 +444,7 @@ namespace AST {
 
         llvm::Value *CodeGenPtr(CodeGenContext *context);
     };
+
     class EqExpr : public Expr {
     public:
         Expr *lhs;
@@ -411,6 +472,7 @@ namespace AST {
 
         llvm::Value *CodeGenPtr(CodeGenContext *context);
     };
+
     class GreatExpr : public Expr {
     public:
         Expr *lhs;
@@ -424,6 +486,7 @@ namespace AST {
 
         llvm::Value *CodeGenPtr(CodeGenContext *context);
     };
+
     class LessExpr : public Expr {
     public:
         Expr *lhs;
@@ -437,6 +500,7 @@ namespace AST {
 
         llvm::Value *CodeGenPtr(CodeGenContext *context);
     };
+
     class AssignExpr : public Expr {
     public:
         Expr *lhs;  // 赋值符号左侧表达式
