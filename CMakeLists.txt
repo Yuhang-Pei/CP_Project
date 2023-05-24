@@ -32,7 +32,7 @@ add_executable(
         src/frontend/codegen.h
         src/frontend/io.cpp
         src/frontend/type.hpp
-)
+        src/frontend/util.hpp)
 
 # 链接 LLVM 库
 target_link_libraries(CP_Project LLVM)

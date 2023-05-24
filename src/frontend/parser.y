@@ -45,7 +45,9 @@ AST::Prog *Root;
     AST::Block *block;
     AST::ExprStmt *exprStmt;
     AST::IfStmt *ifStmt;
+    AST::ForStmt *forStmt;
     AST::ReturnStmt *returnStmt;
+    AST::EmptyStmt * emptyStmt;
 
     AST::Expr *expr;
     AST::FuncCall *funcCall;
@@ -53,6 +55,8 @@ AST::Prog *Root;
     AST::AddExpr *addExpr;
     AST::MulExpr *mulExpr;
     AST::EqExpr *eqExpr;
+    AST::NeqExpr *neqExpr;
+    AST::AssignExpr *assignExpr;
     AST::Variable *variable;
     AST::Constant *constant;
     AST::Boolean *boolean;
@@ -67,10 +71,10 @@ AST::Prog *Root;
 %token<identifier>	IDENTIFIER
 %token<token>		SEMI COMMA LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE
 %token<token>		ADD
-%token<token>		EQUAL
+%token<token>		EQUAL NEQ
 %token<token>		ASSIGN
 %token<token>		VOID BOOL CHAR INT
-%token<token>		IF ELSE RETURN
+%token<token>		IF ELSE FOR RETURN
 
 %type<prog>		Prog
 
@@ -92,13 +96,17 @@ AST::Prog *Root;
 %type<stmt>		Stmt
 %type<stmts>		Stmts
 %type<block>		Block
+%type<exprStmt>		ExprStmt
 %type<ifStmt>		IfStmt
+%type<forStmt>		ForStmt
+%type<stmt>		ForInit
+%type<expr>		ForCondition ForIncrement
 %type<returnStmt>	ReturnStmt
+%type<emptyStmt>	EmptyStmt
 
 %type<expr>		Expr
 %type<funcCall>		FuncCall
 %type<args>		Args
-//%type<variable>		Variable
 %type<constant>		Constant
 
 %left   ADD
@@ -151,20 +159,40 @@ Stmts : Stmts Stmt { $$ = $1; $$->push_back($2); }
 
 Stmt : VarDef { $$ = $1; }
      | Block { $$ = $1; }
-     | Expr SEMI { $$ = new AST::ExprStmt($1); }
+     | ExprStmt { $$ = $1; }
      | IfStmt { $$ = $1; }
+     | ForStmt { $$ = $1; }
      | ReturnStmt { $$ = $1; }
+     | EmptyStmt { $$ = $1; }
+
+ExprStmt : Expr SEMI { $$ = new AST::ExprStmt($1); }
 
 IfStmt : IF LPAREN Expr RPAREN Stmt ELSE Stmt { $$ = new AST::IfStmt($3, $5, $7); }
        | IF LPAREN Expr RPAREN Stmt { $$ = new AST::IfStmt($3, $5); }
 
+ForStmt : FOR LPAREN ForInit ForCondition SEMI ForIncrement RPAREN Stmt { $$ = new AST::ForStmt($3, $4, $6, $8); }
+
+ForInit : ExprStmt { $$ = $1; }
+        | VarDef { $$ = $1; }
+        | EmptyStmt { $$ = $1; }
+
+ForCondition : Expr { $$ = $1; }
+             | { $$ = nullptr; }
+
+ForIncrement : Expr { $$ = $1; }
+             | { $$ = nullptr; }
+
 ReturnStmt : RETURN Expr SEMI { $$ = new AST::ReturnStmt($2); }
            | RETURN SEMI { $$ = new AST::ReturnStmt(); }
+
+EmptyStmt : SEMI { $$ = new AST::EmptyStmt(); }
 
 Expr : FuncCall { $$ = $1; }
      | Expr ADD Expr { $$ = new AST::AddExpr($1, $3); }
      | Expr MUL Expr { $$ = new AST::MulExpr($1, $3); }
      | Expr EQUAL Expr { $$ = new AST::EqExpr($1, $3); }
+     | Expr NEQ Expr { $$ = new AST::NeqExpr($1, $3); }
+     | Expr ASSIGN Expr { $$ = new AST::AssignExpr($1, $3); }
      | IDENTIFIER { $$ = new AST::Variable(*$1); }
      | Constant { $$ = $1; }
 

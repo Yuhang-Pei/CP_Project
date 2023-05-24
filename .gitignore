@@ -7,3 +7,6 @@ build/
 src/frontend/parser.hpp
 src/frontend/parser.cpp
 src/frontend/lexer.cpp
+
+CP_Project
+git

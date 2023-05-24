@@ -36,7 +36,6 @@
 #include <llvm/Transforms/InstCombine/InstCombine.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/Scalar/GVN.h>
-#include <llvm/MC/TargetRegistry.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Host.h>
 #include <llvm/Support/TargetSelect.h>
@@ -67,7 +66,9 @@ int main(int argc, char **argv) {
     CreateIOFunc(&context);
     context.GenerateCode(Root);
     context.DumpLLVMIR("./test/llvm.ll");
+#if LLVM_VERSION_MAJOR >= 16
     context.GenerateObject("./test/object.o");
+#endif
     context.ExecuteCode();
 
     return 0;
