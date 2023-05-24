@@ -40,6 +40,7 @@ void GetString() {
 
 ";"                     { return SEMI; }
 ","                     { return COMMA; }
+"."                     { return DOT; }
 "("                     { return LPAREN; }
 ")"                     { return RPAREN; }
 "["                     { return LBRACKET; }
@@ -55,7 +56,7 @@ void GetString() {
 "-"                     { return SUB; }
 "/"                     { return DIV; }
 "="                     { return ASSIGN; }
-
+"!"                     { return NOT; }
 "if"                    { return IF; }
 "else"                  { return ELSE; }
 "for"                   { return FOR; }
@@ -67,9 +68,13 @@ void GetString() {
 "double"                { return DOUBLE;}
 "true"                  { return TRUE; }
 "false"                 { return FALSE; }
+"NULL"                  { return NULLPTR; }
+"nullptr"               { return NULLPTR; }
 [a-zA-Z_][a-zA-Z0-9_]*  { yylval.identifier = new std::string(yytext, yyleng); return IDENTIFIER; }
 [1-9][0-9]*|0           { sscanf(yytext, "%d", &(yylval.intVal)); return INTEGER; }
-[0-9]+\.[0-9]+ { sscanf(yytext, "%lf", &(yylval.doubleVal)); return REAL; }
+[0-9]+\.[0-9]+          { sscanf(yytext, "%lf", &(yylval.doubleVal)); return REAL; }
+\.[0-9]+                { sscanf(yytext, "%lf", &(yylval.doubleVal)); return REAL; }
+[0-9]+\.                { sscanf(yytext, "%lf", &(yylval.doubleVal)); return REAL; }
 [ \n\t]+                ;
 "\'"\\."\'"             { yylval.charVal = Escape(yytext[2]); return CHARACTER; }
 "\'"[^\\']"\'"          { yylval.charVal = yytext[1]; return CHARACTER; }
