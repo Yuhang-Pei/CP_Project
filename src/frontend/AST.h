@@ -79,7 +79,9 @@ namespace AST {
         class Block;
         class ExprStmt;
         class IfStmt;
+        class ForStmt;
         class ReturnStmt;
+        class EmptyStmt;
 
     class Expr;
         class FuncCall;
@@ -87,8 +89,9 @@ namespace AST {
         class AddExpr;
         class MulExpr;
         class EqExpr;
-        class NEExpr;
+        class NeqExpr;
         class AssignExpr;
+        class CommaExpr;
         class Variable;
         class Constant;
             class Boolean;
@@ -271,6 +274,20 @@ namespace AST {
         llvm::Value *CodeGen(CodeGenContext *context);
     };
 
+    class ForStmt : public Stmt {
+    public:
+        Stmt *init;         // 循环前的初始化表达式
+        Expr *condition;    // 循环继续执行或退出的条件表达式
+        Expr *increment;    // 完成一次循环后的增量表达式
+        Stmt *loopStmt;     // 循环体内的语句
+
+        ForStmt(Stmt *init, Expr *condition, Expr *increment, Stmt *loopStmt) : init(init), condition(condition), increment(increment), loopStmt(loopStmt) {}
+
+        ~ForStmt() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
+    };
+
     class ReturnStmt : public Stmt {
     public:
         Expr *returnVal;    // 返回表达式
@@ -280,6 +297,15 @@ namespace AST {
         ~ReturnStmt() = default;
 
         llvm::Value *CodeGen(CodeGenContext *context);
+    };
+
+    class EmptyStmt : public Stmt {
+    public:
+        EmptyStmt() = default;
+
+        ~EmptyStmt() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context) { return nullptr; }
     };
 
     class FuncCall : public Expr {
@@ -332,6 +358,20 @@ namespace AST {
         EqExpr(Expr *lhs, Expr *rhs) : lhs(lhs), rhs(rhs) {}
 
         ~EqExpr() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
+
+        llvm::Value *CodeGenPtr(CodeGenContext *context);
+    };
+
+    class NeqExpr : public Expr {
+    public:
+        Expr *lhs;
+        Expr *rhs;
+
+        NeqExpr(Expr *lhs, Expr *rhs) : lhs(lhs), rhs(rhs) {}
+
+        ~NeqExpr() = default;
 
         llvm::Value *CodeGen(CodeGenContext *context);
 

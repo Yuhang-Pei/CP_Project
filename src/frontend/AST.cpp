@@ -8,6 +8,7 @@
 #include "codegen.h"
 #include "parser.hpp"
 #include "type.hpp"
+#include "util.hpp"
 
 
 /**
@@ -148,15 +149,15 @@ void CodeGenContext::DumpLLVMIR(const std::string &fileName) const {
  * @param basicBlock 需要压入的基本块的指针
  */
 void CodeGenContext::PushBasicBlock(llvm::BasicBlock *basicBlock) {
-    this->blocks.push(new CodeGenBlock(basicBlock));
+    this->blocks.push_back(new CodeGenBlock(basicBlock));
 }
 
 /**
  * @brief 将一个基本块弹出基本块构成的栈
  */
 void CodeGenContext::PopBasicBlock() {
-    CodeGenBlock *top = this->blocks.top();
-    this->blocks.pop();
+    CodeGenBlock *top = this->blocks.back();
+    this->blocks.pop_back();
     delete top;
 }
 
@@ -169,9 +170,24 @@ bool CodeGenContext::AddLocalVar(llvm::Value *var, const std::string &varName) {
     if (IsVarInLocal(varName))
         return false;
 
-    VarTable &currentVarTable = this->blocks.top()->localVars;  // 获取当前符号表
+    VarTable &currentVarTable = this->blocks.back()->localVars;  // 获取当前符号表
     currentVarTable[varName] = var; // 在符号表中添加 (varName, var) 键值对
     return true;
+}
+
+llvm::Value *CodeGenContext::GetVar(const std::string &varName)  {
+    for (auto block = blocks.rbegin(); block != blocks.rend(); ++block)
+        if ((*block)->localVars.find(varName) != (*block)->localVars.end())
+            return (*block)->localVars[varName];
+
+    return nullptr;
+}
+
+bool CodeGenContext::IsVarDefined(const std::string &varName) {
+    for (auto block = blocks.rbegin(); block != blocks.rend(); ++block)
+        if ((*block)->localVars.find(varName) != (*block)->localVars.end())
+            return true;
+    return false;
 }
 
 /* 以下是 AST 节点类型的方法实现（主要为 GenCode 方法） */
@@ -323,9 +339,29 @@ namespace AST {
 
     llvm::Value *Block::CodeGen(CodeGenContext *context) {
         std::cout << "Creating block..." << std::endl;
+
+        llvm::Function *currentFunc = context->GetCurrentFunc();
+
+        // 为 block 创建一个基本块
+        llvm::BasicBlock *blockBB = llvm::BasicBlock::Create(Context, "block");
+
+        // 创建无条件分支语句，跳转到 blockBB
+        Builder.CreateBr(blockBB);
+
+        // 将 block 插入到当前函数的基本块列表的末尾
+        InsertFuncBasicBlockList(currentFunc, blockBB);
+        // 将该 block 设为指令插入点
+        Builder.SetInsertPoint(blockBB);
+        // 将 blockBB 基本块入栈
+        context->PushBasicBlock(blockBB);
+
         for (auto stmt : *this->stmts)
             if (stmt)
                 stmt->CodeGen(context); // 为 block 中的每个语句执行 CodeGen() 操作
+
+        // 将 blockBB 基本块出栈
+        context->PopBasicBlock();
+
         std::cout << "Block has be created" << std::endl;
 
         // 该函数的返回值不会被使用，故返回空指针
@@ -385,7 +421,7 @@ namespace AST {
         Builder.CreateCondBr(ifCondition, thenBB, elseBB);
 
         // 在 then 基本块中添加指令
-        currentFunc->insert(currentFunc->end(), thenBB);    // 在函数的基本块列表的末尾添加 thenBB
+        InsertFuncBasicBlockList(currentFunc, thenBB);    // 在函数的基本块列表的末尾添加 thenBB
         Builder.SetInsertPoint(thenBB); // 将插入指令的位置设为 thenBB
         if (this->thenStmt) {
             context->PushBasicBlock(thenBB);
@@ -395,7 +431,7 @@ namespace AST {
         Builder.CreateBr(mergeBB);
 
         // 在 else 基本块中添加指令
-        currentFunc->insert(currentFunc->end(), elseBB);    // 在函数的基本块列表的末尾添加 elseBB
+        InsertFuncBasicBlockList(currentFunc, elseBB);    // 在函数的基本块列表的末尾添加 elseBB
         Builder.SetInsertPoint(elseBB); // 将插入指令的位置设为 elseBB
         if (this->elseStmt) {
             context->PushBasicBlock(elseBB);
@@ -405,10 +441,84 @@ namespace AST {
         Builder.CreateBr(mergeBB);
 
         // 在 merge 基本块中添加指令
-        currentFunc->insert(currentFunc->end(), mergeBB);   // 在函数的基本块列表的末尾添加 mergeBB
+        InsertFuncBasicBlockList(currentFunc, mergeBB);   // 在函数的基本块列表的末尾添加 mergeBB
         Builder.SetInsertPoint(mergeBB);    // 将插入指令的位置设为 mergeBB
 
         std::cout << "If statement has been created" << std::endl;
+
+        // 该函数的返回值不会使用，故返回空指针
+        return nullptr;
+    }
+
+    llvm::Value *ForStmt::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating for loop statement..." << std::endl;
+
+        // 获取当前函数
+        llvm::Function *currentFunc = context->GetCurrentFunc();
+
+        // 构造 loop 基本块，包含整个循环语句
+        llvm::BasicBlock *loopBB = llvm::BasicBlock::Create(Context, "loop");
+        // 构造 condition 基本块，包含条件表达式
+        llvm::BasicBlock *conditionBB = llvm::BasicBlock::Create(Context, "context");
+        // 构造 body 基本块，包含循环体
+        llvm::BasicBlock *bodyBB = llvm::BasicBlock::Create(Context, "body");
+        // 构造 increment 基本块，包含 increment 语句
+        llvm::BasicBlock *incrementBB = llvm::BasicBlock::Create(Context, "increment");
+        // 构造 end 基本块，是循环语句退出的位置
+        llvm::BasicBlock *endBB = llvm::BasicBlock::Create(Context, "end");
+
+        // 处理 init 表达式
+        // 如果 init 表达式不为空，为 init 表达式生成代码
+        if (this->init) {
+            // 跳转到 loop 基本块
+            Builder.CreateBr(loopBB);
+            InsertFuncBasicBlockList(currentFunc, loopBB);  // 在函数的基本块列表的末尾添加 loopBB
+            Builder.SetInsertPoint(loopBB); // 将插入指令的位置设置为 loopBB
+            // 在 init 语句可能定义新变量，因此需要把 loopBB 基本块入栈，以包含新的变量
+            context->PushBasicBlock(loopBB);
+            this->init->CodeGen(context);
+        }
+        else
+            delete loopBB;
+        // 跳转到 condition 基本块
+        Builder.CreateBr(conditionBB);
+
+        // 处理循环条件表达式
+        InsertFuncBasicBlockList(currentFunc, conditionBB);   // 在函数的基本块列表的末尾添加 conditionBB
+        Builder.SetInsertPoint(conditionBB);    // 将插入指令的位置设置为 conditionBB
+        if (this->condition) {
+            // 如果 condition 表达式不为空，为 condition 表达式生成代码，并进行条件跳转
+            llvm::Value *forCondition = CastToBool(this->condition->CodeGen(context));
+            Builder.CreateCondBr(forCondition, bodyBB, endBB);
+        }
+        else
+            // 如果 condition 表达式为空，则无条件跳转到 bodyBB，执行循环体
+            Builder.CreateBr(bodyBB);
+
+        // 处理循环体
+        InsertFuncBasicBlockList(currentFunc, bodyBB);    // 在函数的基本块列表的末尾添加 conditionBB
+        Builder.SetInsertPoint(bodyBB);         // 将插入指令的位置设置为 bodyBB
+        context->PushBasicBlock(bodyBB);     // 将 body 基本块入栈
+        this->loopStmt->CodeGen(context);
+        context->PopBasicBlock();   // 将 body 基本块出栈
+        Builder.CreateBr(incrementBB);  // 无条件跳转到 incrementBB
+
+        // 处理 increment 表达式
+        InsertFuncBasicBlockList(currentFunc, incrementBB); // 在函数的基本块列表的末尾添加 incrementBB
+        Builder.SetInsertPoint(incrementBB);    // 将插入指令的位置设置为 incrementBB
+        // 如果 increment 表达式不为空，为 increment 表达式生成代码
+        if (this->increment)
+            this->increment->CodeGen(context);
+        Builder.CreateBr(conditionBB);  // 无条件跳转到 conditionBB
+
+        // 处理 for 循环的结束
+        InsertFuncBasicBlockList(currentFunc, endBB);
+        Builder.SetInsertPoint(endBB);
+        // 如果 init 语句不为空，则需要把之前压入的 loopBB 弹出
+        if (this->init)
+            context->PopBasicBlock();
+
+        std::cout << "For loop statement has been created" << std::endl;
 
         // 该函数的返回值不会使用，故返回空指针
         return nullptr;
@@ -550,6 +660,25 @@ namespace AST {
         throw std::logic_error("Logical equality expression cannot be used as left-value");
     }
 
+    llvm::Value *NeqExpr::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating logical inequality expression..." << std::endl;
+
+        // 对左表达式执行 CodeGen() 操作
+        llvm::Value *LHS = this->lhs->CodeGen(context);
+        // 对右表达式执行 CodeGen() 操作
+        llvm::Value *RHS = this->rhs->CodeGen(context);
+
+        std::cout << "Logical inequality expression has been created" << std::endl;
+
+        // 创建逻辑等于表达式指令
+        // TODO: 只实现了整型的逻辑等于
+        return Builder.CreateICmpNE(LHS, RHS);
+    }
+
+    llvm::Value *NeqExpr::CodeGenPtr(CodeGenContext *context) {
+        throw std::logic_error("Logical inequality expression cannot be used as left-value");
+    }
+
     llvm::Value *AssignExpr::CodeGen(CodeGenContext *context) {
         std::cout << "Creating assignment expression..." << std::endl;
 
@@ -574,11 +703,11 @@ namespace AST {
         std::cout << "Creating reference to variable " << this->varName << "..." << std::endl;
 
         // 处理变量未定义的错误
-        if (!context->IsVarInLocal(this->varName))
+        if (!context->IsVarDefined(this->varName))
             throw std::logic_error("Variable \"" + this-> varName+ "\" is not a variable");
 
         // 创建一个取数指令
-        llvm::Value *varPtr = context->GetLocalVar(this->varName);
+        llvm::Value *varPtr = context->GetVar(this->varName);
         llvm::Type *varType = GetPtrElementType(varPtr);
         return Builder.CreateLoad(varType, varPtr, this->varName);
     }
@@ -587,10 +716,10 @@ namespace AST {
         std::cout << "Creating reference to variable " << this->varName << "..." << std::endl;
 
         // 处理变量未定义的错误
-        if (!context->IsVarInLocal(this->varName))
+        if (!context->IsVarDefined(this->varName))
             throw std::logic_error("Variable \"" + this-> varName+ "\" is not a variable");
 
-        return context->GetLocalVar(this->varName);
+        return context->GetVar(this->varName);
     }
 
     llvm::Value *Constant::CodeGenPtr(CodeGenContext *context) {

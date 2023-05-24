@@ -47,11 +47,13 @@ void GetString() {
 "{"                     { return LBRACE; }
 "}"                     { return RBRACE; }
 "=="                    { return EQUAL; }
+"!="                    { return NEQ; }
 "+"		                { return ADD; }
 "*"		                { return MUL; }
 "="                     { return ASSIGN; }
 "if"                    { return IF; }
 "else"                  { return ELSE; }
+"for"                   { return FOR; }
 "return"                { return RETURN; }
 "void"                  { return VOID; }
 "bool"                  { return BOOL; }

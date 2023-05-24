@@ -2,6 +2,253 @@
 
 ## Context-Free Grammar
 
+### Version 1.5
+
+```
+Prog : Units
+
+Units : Units Unit
+      | Unit
+
+Unit : Def
+
+Def : FuncDef
+    | VarDef
+
+FuncDef : TypeSpecifier IDENTIFIER LPAREN Params RPAREN FuncBody
+
+FuncBody : LBRACE Stmts RBRACE
+
+VarDef : TypeSpecifier VarInitList SEMI
+
+VarInitList : VarInitList COMMA VarInit
+            | VarInit
+
+VarInit : IDENTIFIER ASSIGN Expr
+        | IDENTIFIER
+
+TypeSpecifier : BuiltInType
+
+BuiltInType : VOID
+            | BOOL
+            | CHAR
+            | INT
+
+Params : Params COMMA Param
+       | Param
+       | VOID
+       |
+
+Param : TypeSpecifier IDENTIFIER
+
+Block : LBRACE Stmts RBRACE
+
+Stmts : Stmts Stmt
+      | Stmt
+
+Stmt : VarDef
+     | Block
+     | ExprStmt [修改]
+     | IfStmt
+     | ForStmt [新增]
+     | ReturnStmt
+     | EmptyStmt [新增]
+
+IfStmt : IF LPAREN Expr RPAREN Stmt ELSE Stmt
+       | IF LPAREN Expr RPAREN Stmt
+
+ReturnStmt : RETURN Expr SEMI
+           | RETURN SEMI [新增]
+
+ForStmt : FOR LPAREN ForInit ForCondition SEMI ForIncrement RPAREN Stmt [新增]
+
+ForInit : ExprStmt [新增]
+        | VarDef [新增]
+        | EmptyStmt [新增]
+
+ForCondition : Expr [新增]
+             | [新增]
+
+ForIncrement : Expr [新增]
+             | [新增]
+
+ReturnStmt : RETURN Expr SEMI
+           | RETURN SEMI
+
+EmptyStmt : SEMI [新增]
+
+Expr : FuncCall
+     | Expr ADD Expr
+     | Expr MUL Expr [新增]
+     | Expr EQUAL Expr
+     | Expr NEQ Expr [新增]
+     | Expr ASSIGN Expr [新增]
+     | IDENTIFIER
+     | Constant
+
+Constant : TRUE
+         | FALSE
+  			 | CHARACTER
+         | INTEGER
+         | STRING [新增]
+
+FuncCall : IDENTIFIER LPAREN Args RPAREN
+
+Args : Args COMMA Expr
+     | Expr
+     |
+```
+
+
+
+
+
+### Version 1.4
+
+```
+Prog : Units
+
+Units : Units Unit
+      | Unit
+
+Unit : Def
+
+Def : FuncDef
+    | VarDef
+
+FuncDef : TypeSpecifier IDENTIFIER LPAREN Params RPAREN FuncBody
+
+FuncBody : LBRACE Stmts RBRACE
+
+VarDef : TypeSpecifier VarInitList SEMI
+
+VarInitList : VarInitList COMMA VarInit
+            | VarInit
+
+VarInit : IDENTIFIER ASSIGN Expr
+        | IDENTIFIER
+
+TypeSpecifier : BuiltInType
+
+BuiltInType : VOID
+            | BOOL
+            | CHAR
+            | INT
+
+Params : Params COMMA Param
+       | Param
+       | VOID
+       |
+
+Param : TypeSpecifier IDENTIFIER
+
+Block : LBRACE Stmts RBRACE
+
+Stmts : Stmts Stmt
+      | Stmt
+
+Stmt : VarDef
+     | Block
+     | Expr SEMI
+     | IfStmt [新增]
+     | ReturnStmt
+
+IfStmt : IF LPAREN Expr RPAREN Stmt ELSE Stmt [新增]
+       | IF LPAREN Expr RPAREN Stmt [新增]
+
+ReturnStmt : RETURN Expr SEMI
+           | RETURN SEMI [新增]
+
+Expr : FuncCall
+     | Expr ADD Expr
+     | Expr EQUAL Expr [新增]
+     | IDENTIFIER
+     | Constant
+
+Constant : TRUE
+         | FALSE
+  			 | CHARACTER
+         | INTEGER
+
+FuncCall : IDENTIFIER LPAREN Args RPAREN
+
+Args : Args COMMA Expr
+     | Expr
+     |
+```
+
+
+
+### Version 1.3
+
+```
+Prog : Units
+
+Units : Units Unit
+      | Unit
+
+Unit : Def
+
+Def : FuncDef
+    | VarDef
+
+FuncDef : TypeSpecifier IDENTIFIER LPAREN Params RPAREN FuncBody [修改]
+
+FuncBody : LBRACE Stmts RBRACE [新增]
+
+VarDef : TypeSpecifier VarInitList SEMI
+
+VarInitList : VarInitList COMMA VarInit
+            | VarInit
+
+VarInit : IDENTIFIER ASSIGN Expr
+        | IDENTIFIER
+
+TypeSpecifier : BuiltInType
+
+BuiltInType : VOID
+            | BOOL [新增]
+            | CHAR
+            | INT
+
+Params : Params COMMA Param
+       | Param
+       | VOID
+       |
+
+Param : TypeSpecifier IDENTIFIER
+
+Block : LBRACE Stmts RBRACE
+
+Stmts : Stmts Stmt
+      | Stmt
+
+Stmt : VarDef [新增]
+     | Block [新增]
+     | Expr SEMI
+     | ReturnStmt [修改]
+
+ReturnStmt : RETURN Expr SEMI [新增]
+
+Expr : FuncCall
+     | Expr ADD Expr
+     | IDENTIFIER
+     | Constant
+
+Constant : TRUE [新增]
+         | FALSE [新增]
+  			 | CHARACTER
+         | INTEGER
+
+FuncCall : IDENTIFIER LPAREN Args RPAREN
+
+Args : Args COMMA Expr
+     | Expr
+     | 
+```
+
+
+
 ### Version 1.2
 
 ```c

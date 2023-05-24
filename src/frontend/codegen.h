@@ -58,17 +58,17 @@ public:
 
     void PopBasicBlock();
 
-    llvm::BasicBlock *GetCurrentBlock() const { return this->blocks.top()->basicBlock; }
+    llvm::BasicBlock *GetCurrentBlock() const { return this->blocks.back()->basicBlock; }
 
 //    llvm::Type *GetCurrentReturnType() const { return this->blocks.top()->returnValue->getType(); }
 
-    void SetCurrentReturnValue(llvm::Value *returnValue) { this->blocks.top()->returnValue = returnValue; }
+    void SetCurrentReturnValue(llvm::Value *returnValue) { this->blocks.back()->returnValue = returnValue; }
 
-    llvm::Value *GetCurrentReturnValue() const { return this->blocks.top()->returnValue; }
+    llvm::Value *GetCurrentReturnValue() const { return this->blocks.back()->returnValue; }
 
     /* 变量表操作 */
 
-    VarTable &GetLocalVars() { return this->blocks.top()->localVars; }
+    VarTable &GetLocalVars() { return this->blocks.back()->localVars; }
 
     llvm::Value *GetLocalVar(const std::string &varName) { return GetLocalVars()[varName]; }
 
@@ -76,13 +76,17 @@ public:
 
     bool IsVarInLocal(const std::string &varName) { return !(GetLocalVars().find(varName) == GetLocalVars().end()); }
 
+    llvm::Value *GetVar(const std::string &varName);
+
+    bool IsVarDefined(const std::string &varName);
+
     /* 函数操作 */
 
     void SetMainFunc(llvm::Function *mainFunc) { this->mainFunc = mainFunc; }
 
     bool IsFuncExist(const std::string &funcName) { return !(this->module->getFunction(funcName)); }
 
-    /* 当前函数 */
+    /* 当前函数操作 */
 
     void EnterFunc(llvm::Function *func) { this->currentFunc = func; }
 
@@ -97,7 +101,7 @@ public:
     llvm::Type *GetCurrentReturnType() const { return this->currentFunc->getReturnType(); }
 
 private:
-    std::stack<CodeGenBlock *> blocks;
+    std::vector<CodeGenBlock *> blocks;
     llvm::Function *mainFunc;
     llvm::Function *currentFunc = nullptr;
 };
