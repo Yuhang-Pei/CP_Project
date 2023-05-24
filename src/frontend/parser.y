@@ -18,6 +18,7 @@ AST::Prog *Root;
 %union {
     char charVal;
     int intVal;
+    double doubleVal;
     std::string *strVal;
     std::string *identifier;
 
@@ -66,11 +67,13 @@ AST::Prog *Root;
     AST::Boolean *boolean;
     AST::Character *character;
     AST::Integer *integer;
+    AST::Real *real;
 }
 
 %token<token>		TRUE FALSE
 %token<charVal>		CHARACTER
 %token<intVal>		INTEGER
+%token<doubleVal>   REAL
 %token<strVal>		STRING
 %token<identifier>	IDENTIFIER
 %token<token>		SEMI COMMA LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE
@@ -82,7 +85,7 @@ AST::Prog *Root;
 %token<token>		GREAT
 %token<token>		LESS
 %token<token>		ASSIGN
-%token<token>		VOID BOOL CHAR INT
+%token<token>		VOID BOOL CHAR INT DOUBLE
 %token<token>		IF ELSE FOR RETURN
 
 %type<prog>		Prog
@@ -153,6 +156,7 @@ BuiltInType : VOID { $$ = new AST::BuiltInType(AST::BuiltInType::_VOID); }
 	    | BOOL { $$ = new AST::BuiltInType(AST::BuiltInType::_BOOL); }
             | CHAR { $$ = new AST::BuiltInType(AST::BuiltInType::_CHAR); }
             | INT { $$ = new AST::BuiltInType(AST::BuiltInType::_INT); }
+            | DOUBLE {$$ = new AST::BuiltInType(AST::BuiltInType::_DOUBLE); }
 
 Params : Params COMMA Param { $$ = $1; $$->push_back($3); }
        | Param { $$ = new AST::Params(); $$->push_back($1); }
@@ -213,6 +217,7 @@ Constant : TRUE { $$ = new AST::Boolean(true); }
 	 | FALSE { $$ = new AST::Boolean(false); }
          | CHARACTER { $$ = new AST::Character($1); }
          | INTEGER { $$ = new AST::Integer($1); }
+         | REAL { $$ = new AST::Real($1); }
          | STRING { $$ = new AST::ConstString(*$1); }
 
 FuncCall : IDENTIFIER LPAREN Args RPAREN { $$ = new AST::FuncCall(*$1, $3); }

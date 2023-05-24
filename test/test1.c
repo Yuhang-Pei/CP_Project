@@ -1,3 +1,4 @@
+
 int a(int arg1, int arg2) {
     int u = 200, v = u;
     return v / 2 / 10;
@@ -20,6 +21,5 @@ int main(void) {
     printChar('a');
     printChar(returnChar());
     printChar(c);
-
     return 0;
 }

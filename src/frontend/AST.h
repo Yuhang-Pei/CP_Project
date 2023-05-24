@@ -105,6 +105,7 @@ namespace AST {
             class Character;
             class Integer;
             class ConstString;
+            class Real;
 }
 
 /* AST 节点的类定义 */
@@ -210,7 +211,8 @@ namespace AST {
             _VOID,
             _BOOL,
             _CHAR,
-            _INT
+            _INT,
+            _DOUBLE
         };
         TypeID type;    // 内置类型的编号
 
@@ -502,6 +504,17 @@ namespace AST {
         Integer(int intVal) : intVal(intVal) {}
 
         ~Integer() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
+    };
+
+    class Real : public Constant {
+    public:
+        double doubleVal; // 整型类型的整型值
+
+        Real(double doubleVal) : doubleVal(doubleVal) {}
+
+        ~Real() = default;
 
         llvm::Value *CodeGen(CodeGenContext *context);
     };

@@ -265,6 +265,9 @@ namespace AST {
             case _BOOL: this->LLVMType = llvm::Type::getInt1Ty(Context);  break;
             case _CHAR: this->LLVMType = llvm::Type::getInt8Ty(Context);  break;
             case _INT:  this->LLVMType = llvm::Type::getInt32Ty(Context); break;
+            // case _FLOAT: this->LLVMType = LLVM::Type::getFloatTy(Context); break;
+            case _DOUBLE: this->LLVMType = llvm::Type::getDoubleTy(Context); break;
+
         }
 
         return this->LLVMType;
@@ -276,6 +279,8 @@ namespace AST {
             case _BOOL: return "bool";
             case _CHAR: return "char";
             case _INT:  return "int";
+            case _DOUBLE: return "double";
+            // case _FLOAT : return "float"                                                     
         }
     }
 
@@ -569,6 +574,12 @@ namespace AST {
         std::cout << "Creating integer " << this->intVal << "..." << std::endl;
         // 返回 llvm::ConstantInt 类型的 32 比特整型常量，默认为有符号
         return llvm::ConstantInt::get(llvm::Type::getInt32Ty(Context), this->intVal, true);
+    }
+
+    llvm::Value *Real::CodeGen(CodeGenContext *context){
+        std::cout << "Creating real " << this->doubleVal << "..." << std::endl;
+        // 返回 llvm::ConstantFP 类型的 实数型常量，默认为有符号
+        return llvm::ConstantFP::get(llvm::Type::getDoubleTy(Context), this->doubleVal);
     }
 
     llvm::Value *ConstString::CodeGen(CodeGenContext *context) {
