@@ -653,6 +653,42 @@ namespace AST {
     llvm::Value *MulExpr::CodeGenPtr(CodeGenContext *context) {
         throw std::logic_error("Multiplication expression cannot be used as left-value");
     }
+    llvm::Value *SubExpr::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating sub expression..." << std::endl;
+
+        // 对左表达式执行 CodeGen() 操作
+        llvm::Value *LHS = this->lhs->CodeGen(context);
+        // 对右表达式执行 CodeGen() 操作
+        llvm::Value *RHS = this->rhs->CodeGen(context);
+
+        std::cout << "sub expression has been created" << std::endl;
+
+        // 创建加法表达式指令
+        // TODO: 只实现了整型的加法
+        return Builder.CreateSub(LHS, RHS);
+    }
+
+    llvm::Value *SubExpr::CodeGenPtr(CodeGenContext *context) {
+        throw std::logic_error("Sub expression cannot be used as left-value");
+    }
+    llvm::Value *DivExpr::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating div expression..." << std::endl;
+
+        // 对左表达式执行 CodeGen() 操作
+        llvm::Value *LHS = this->lhs->CodeGen(context);
+        // 对右表达式执行 CodeGen() 操作
+        llvm::Value *RHS = this->rhs->CodeGen(context);
+
+        std::cout << "Div expression has been created" << std::endl;
+
+        // 创建加法表达式指令
+        // TODO: 只实现了整型的加法
+        return Builder.CreateSDiv(LHS, RHS);
+    }
+
+    llvm::Value *DivExpr::CodeGenPtr(CodeGenContext *context) {
+        throw std::logic_error("Div expression cannot be used as left-value");
+    }
 
     llvm::Value *EqExpr::CodeGen(CodeGenContext *context) {
         std::cout << "Creating logical equality expression..." << std::endl;
@@ -690,6 +726,44 @@ namespace AST {
 
     llvm::Value *NeqExpr::CodeGenPtr(CodeGenContext *context) {
         throw std::logic_error("Logical inequality expression cannot be used as left-value");
+    }
+
+    llvm::Value *GreatExpr::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating logical greater expression..." << std::endl;
+
+        // 对左表达式执行 CodeGen() 操作
+        llvm::Value *LHS = this->lhs->CodeGen(context);
+        // 对右表达式执行 CodeGen() 操作
+        llvm::Value *RHS = this->rhs->CodeGen(context);
+
+        std::cout << "Logical Greter expression has been created" << std::endl;
+
+        // 创建逻辑等于表达式指令
+        // TODO: 只实现了整型的逻辑大于
+        return Builder.CreateICmpSGT(LHS, RHS);
+    }
+
+    llvm::Value *GreatExpr::CodeGenPtr(CodeGenContext *context) {
+        throw std::logic_error("Logical Greater expression cannot be used as left-value");
+    }
+
+    llvm::Value *LessExpr::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating logical less expression..." << std::endl;
+
+        // 对左表达式执行 CodeGen() 操作
+        llvm::Value *LHS = this->lhs->CodeGen(context);
+        // 对右表达式执行 CodeGen() 操作
+        llvm::Value *RHS = this->rhs->CodeGen(context);
+
+        std::cout << "Logical less expression has been created" << std::endl;
+
+        // 创建逻辑等于表达式指令
+        // TODO: 只实现了整型的逻辑小于
+        return Builder.CreateICmpSLT(LHS, RHS);
+    }
+
+    llvm::Value *LessExpr::CodeGenPtr(CodeGenContext *context) {
+        throw std::logic_error("Logical less expression cannot be used as left-value");
     }
 
     llvm::Value *AssignExpr::CodeGen(CodeGenContext *context) {

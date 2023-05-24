@@ -55,8 +55,12 @@ AST::Prog *Root;
     AST::Args *args;
     AST::AddExpr *addExpr;
     AST::MulExpr *mulExpr;
+    AST::SubExpr *subExpr;
+    AST::DivExpr *divExpr;
     AST::EqExpr *eqExpr;
     AST::NeqExpr *neqExpr;
+    AST::GreatExpr *greatExpr;
+    AST::LessExpr *lessExpr;
     AST::AssignExpr *assignExpr;
     AST::Variable *variable;
     AST::Constant *constant;
@@ -74,7 +78,12 @@ AST::Prog *Root;
 %token<identifier>	IDENTIFIER
 %token<token>		SEMI COMMA LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE
 %token<token>		ADD
+%token<token>		SUB
+%token<token>		DIV
+%token<token>		MUL
 %token<token>		EQUAL NEQ
+%token<token>		GREAT
+%token<token>		LESS
 %token<token>		ASSIGN
 %token<token>		VOID BOOL CHAR INT DOUBLE
 %token<token>		IF ELSE FOR RETURN
@@ -112,8 +121,8 @@ AST::Prog *Root;
 %type<args>		Args
 %type<constant>		Constant
 
-%left   ADD
-%left   MUL
+%left   ADD SUB
+%left   MUL DIV
 
 %start  Prog
 
@@ -194,8 +203,12 @@ EmptyStmt : SEMI { $$ = new AST::EmptyStmt(); }
 Expr : FuncCall { $$ = $1; }
      | Expr ADD Expr { $$ = new AST::AddExpr($1, $3); }
      | Expr MUL Expr { $$ = new AST::MulExpr($1, $3); }
+     | Expr SUB Expr { $$ = new AST::SubExpr($1, $3); }
+     | Expr DIV Expr { $$ = new AST::DivExpr($1, $3); }
      | Expr EQUAL Expr { $$ = new AST::EqExpr($1, $3); }
      | Expr NEQ Expr { $$ = new AST::NeqExpr($1, $3); }
+     | Expr GREAT Expr { $$ = new AST::GreatExpr($1, $3); }
+     | Expr LESS Expr { $$ = new AST::LessExpr($1, $3); }
      | Expr ASSIGN Expr { $$ = new AST::AssignExpr($1, $3); }
      | IDENTIFIER { $$ = new AST::Variable(*$1); }
      | Constant { $$ = $1; }

@@ -91,8 +91,12 @@ namespace AST {
             using Args = std::vector<Expr *>;
         class AddExpr;
         class MulExpr;
+        class DivExpr;
+        class SubExpr;
         class EqExpr;
         class NeqExpr;
+        class GreatExpr;
+        class LessExpr;
         class AssignExpr;
         class CommaExpr;
         class Variable;
@@ -354,7 +358,32 @@ namespace AST {
 
         llvm::Value *CodeGenPtr(CodeGenContext *context);
     };
+    class DivExpr : public Expr {
+    public:
+        Expr *lhs;
+        Expr *rhs;
 
+        DivExpr(Expr *lhs, Expr *rhs) : lhs(lhs), rhs(rhs) {}
+
+        ~DivExpr() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
+
+        llvm::Value *CodeGenPtr(CodeGenContext *context);
+    };
+    class SubExpr : public Expr {
+    public:
+        Expr *lhs;  // 加法表达式的左侧表达式
+        Expr *rhs;  // 加法表达式的右侧表达式
+
+        SubExpr(Expr *lhs, Expr *rhs) : lhs(lhs), rhs(rhs) {}
+
+        ~SubExpr() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
+
+        llvm::Value *CodeGenPtr(CodeGenContext *context);
+    };
     class EqExpr : public Expr {
     public:
         Expr *lhs;
@@ -382,7 +411,32 @@ namespace AST {
 
         llvm::Value *CodeGenPtr(CodeGenContext *context);
     };
+    class GreatExpr : public Expr {
+    public:
+        Expr *lhs;
+        Expr *rhs;
 
+        GreatExpr(Expr *lhs, Expr *rhs) : lhs(lhs), rhs(rhs) {}
+
+        ~GreatExpr() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
+
+        llvm::Value *CodeGenPtr(CodeGenContext *context);
+    };
+    class LessExpr : public Expr {
+    public:
+        Expr *lhs;
+        Expr *rhs;
+
+        LessExpr(Expr *lhs, Expr *rhs) : lhs(lhs), rhs(rhs) {}
+
+        ~LessExpr() = default;
+
+        llvm::Value *CodeGen(CodeGenContext *context);
+
+        llvm::Value *CodeGenPtr(CodeGenContext *context);
+    };
     class AssignExpr : public Expr {
     public:
         Expr *lhs;  // 赋值符号左侧表达式
