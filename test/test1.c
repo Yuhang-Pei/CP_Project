@@ -1,6 +1,6 @@
 int a(int arg1, int arg2) {
     int u = 200, v = u;
-    return v * 2 * arg2;
+    return v / 2 / 10;
 }
 
 char returnChar() {
@@ -9,6 +9,8 @@ char returnChar() {
 
 int main(void) {
     char c = 'c';
+    printInt(20-10*2);
+    printInt(20/10);
     printInt(1 * 10 * 100);
     printInt(a(2, 20));
     printChar('a');

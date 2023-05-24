@@ -642,6 +642,42 @@ namespace AST {
     llvm::Value *MulExpr::CodeGenPtr(CodeGenContext *context) {
         throw std::logic_error("Multiplication expression cannot be used as left-value");
     }
+    llvm::Value *SubExpr::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating sub expression..." << std::endl;
+
+        // 对左表达式执行 CodeGen() 操作
+        llvm::Value *LHS = this->lhs->CodeGen(context);
+        // 对右表达式执行 CodeGen() 操作
+        llvm::Value *RHS = this->rhs->CodeGen(context);
+
+        std::cout << "sub expression has been created" << std::endl;
+
+        // 创建加法表达式指令
+        // TODO: 只实现了整型的加法
+        return Builder.CreateSub(LHS, RHS);
+    }
+
+    llvm::Value *SubExpr::CodeGenPtr(CodeGenContext *context) {
+        throw std::logic_error("Sub expression cannot be used as left-value");
+    }
+    llvm::Value *DivExpr::CodeGen(CodeGenContext *context) {
+        std::cout << "Creating div expression..." << std::endl;
+
+        // 对左表达式执行 CodeGen() 操作
+        llvm::Value *LHS = this->lhs->CodeGen(context);
+        // 对右表达式执行 CodeGen() 操作
+        llvm::Value *RHS = this->rhs->CodeGen(context);
+
+        std::cout << "Div expression has been created" << std::endl;
+
+        // 创建加法表达式指令
+        // TODO: 只实现了整型的加法
+        return Builder.CreateSDiv(LHS, RHS);
+    }
+
+    llvm::Value *DivExpr::CodeGenPtr(CodeGenContext *context) {
+        throw std::logic_error("Div expression cannot be used as left-value");
+    }
 
     llvm::Value *EqExpr::CodeGen(CodeGenContext *context) {
         std::cout << "Creating logical equality expression..." << std::endl;
