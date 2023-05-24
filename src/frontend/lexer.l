@@ -50,6 +50,8 @@ void GetString() {
 "!="                    { return NEQ; }
 "+"		                { return ADD; }
 "*"		                { return MUL; }
+"-"                     { return SUB; }
+"/"                     { return DIV; }
 "="                     { return ASSIGN; }
 "if"                    { return IF; }
 "else"                  { return ELSE; }
